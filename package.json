@@ -10,15 +10,25 @@
     "tail": "wrangler tail",
     "generate-api-key": "node scripts/generate-api-key.js",
     "setup": "node scripts/setup-wrangler.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.9.3",
     "@cloudflare/workers-types": "^4.20250920.0",
+    "@types/node": "^24.5.2",
+    "@vitest/ui": "^3.2.4",
+    "husky": "^9.1.7",
+    "miniflare": "^4.20250917.0",
     "typescript": "^5.9.2",
+    "vitest": "^3.2.4",
     "wrangler": "^4.38.0"
   }
 }

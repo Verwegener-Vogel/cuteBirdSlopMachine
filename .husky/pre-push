@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# Check if pushing to master/main branch
+protected_branch='master'
+current_branch=$(git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,')
+push_branch=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$push_branch" = "$protected_branch" ]; then
+    echo "🧪 Running tests before pushing to master..."
+
+    # Run tests
+    npm run test:run
+
+    if [ $? -ne 0 ]; then
+        echo "❌ Tests failed! Push aborted."
+        echo "Fix the failing tests before pushing to master."
+        exit 1
+    fi
+
+    echo "✅ All tests passed!"
+fi
+
+exit 0

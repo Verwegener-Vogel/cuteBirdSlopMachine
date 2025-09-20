@@ -37,8 +37,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Create wrangler.toml from example
+        run: |
+          cp wrangler.toml.example wrangler.toml
+          # Use placeholder IDs for CI testing
+          sed -i 's/YOUR_KV_NAMESPACE_ID/test-kv-id/g' wrangler.toml
+          sed -i 's/YOUR_KV_PREVIEW_ID/test-kv-preview-id/g' wrangler.toml
+          sed -i 's/YOUR_D1_DATABASE_ID/test-d1-id/g' wrangler.toml
+
       - name: TypeScript check
         run: npx tsc --noEmit
+
+      - name: Run unit tests
+        run: npm run test:run -- test/unit
+
+      - name: Run integration tests
+        run: npm run test:run -- test/integration
+
+      - name: Generate test coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
 
       - name: Validate wrangler.toml
         run: npx wrangler deploy --dry-run
