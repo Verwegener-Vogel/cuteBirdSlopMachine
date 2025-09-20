@@ -9,6 +9,7 @@
     "generate-prompts": "wrangler dev --test-scheduled",
     "tail": "wrangler tail",
     "generate-api-key": "node scripts/generate-api-key.js",
+    "setup": "node scripts/setup-wrangler.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

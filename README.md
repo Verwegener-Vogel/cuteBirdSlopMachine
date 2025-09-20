@@ -161,10 +161,24 @@ This generates a cryptographically secure 32-byte key. Use different keys for ea
 ### First-Time Setup
 
 1. Fork/clone repository
-2. Add required secrets to GitHub
+2. Add required secrets to GitHub (see secrets section above)
 3. Run infrastructure workflow to create Cloudflare resources
-4. Update `wrangler.toml` with generated resource IDs
-5. Push to master to trigger first deployment
+4. Configure wrangler.toml with resource IDs:
+   ```bash
+   npm run setup  # Interactive setup
+   # OR copy manually:
+   cp wrangler.toml.example wrangler.toml
+   # Then edit with your IDs from infrastructure workflow output
+   ```
+5. Generate API keys:
+   ```bash
+   npm run generate-api-key  # For production
+   npm run generate-api-key  # Different one for preview
+   ```
+6. Add API keys to GitHub environment secrets
+7. Push to master to trigger first deployment
+
+**Note**: `wrangler.toml` is gitignored since it contains your specific resource IDs. The template `wrangler.toml.example` is committed for reference.
 
 ## Testing
 

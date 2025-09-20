@@ -214,18 +214,18 @@ WORKER_API_KEY         # Preview auth key (different from production)
 
 ### Infrastructure Resource IDs
 
-After running infrastructure workflow, update `wrangler.toml`:
-```toml
-[[kv_namespaces]]
-binding = "PROMPTS_KV"
-id = "YOUR_ACTUAL_KV_ID"        # Get from workflow output
-preview_id = "YOUR_PREVIEW_ID"   # Get from workflow output
+After running infrastructure workflow, configure `wrangler.toml`:
 
-[[d1_databases]]
-binding = "DB"
-database_name = "bird-prompts-db"
-database_id = "YOUR_D1_ID"       # Get from workflow output
+```bash
+npm run setup  # Interactive configuration
 ```
+
+This will:
+1. Copy `wrangler.toml.example` to `wrangler.toml`
+2. Prompt for your Cloudflare resource IDs
+3. Create a configured `wrangler.toml` (gitignored)
+
+**Important**: Never commit `wrangler.toml` with actual IDs. The `.example` file serves as a template with placeholders. Each developer needs their own configured copy.
 
 ### Testing Strategy
 
