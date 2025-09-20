@@ -91,6 +91,75 @@ The system consists of:
 
 Please ensure all contributions align with the project's goal of maximizing cute bird content generation.
 
+## Deployment & CI/CD
+
+### GitHub Actions Workflows
+
+The project includes comprehensive CI/CD automation:
+
+#### 1. Infrastructure Setup (`infrastructure.yml`)
+- **Trigger**: Manual or when infrastructure files change
+- **Purpose**: Creates Cloudflare resources (D1 database, KV namespaces, queues)
+- **Usage**: Run once during initial setup or when adding new resources
+
+#### 2. Deployment Pipeline (`deploy.yml`)
+- **Production**: Automatic deployment on push to master branch
+- **Preview**: Creates isolated deployments for each pull request
+- **Features**:
+  - TypeScript validation
+  - Dry-run testing before deployment
+  - Automatic preview URL comments on PRs
+  - Cleanup of preview environments on PR close
+
+#### 3. Scheduled Prompt Generation (`scheduled.yml`)
+- **Schedule**: Runs every 6 hours automatically
+- **Purpose**: Generates fresh bird prompts to maintain content pipeline
+- **Manual Trigger**: Can be run manually with custom batch count
+
+### Required GitHub Secrets
+
+Configure these in Settings → Secrets and variables → Actions:
+
+```
+CLOUDFLARE_API_TOKEN      # Cloudflare API token with Worker permissions
+CLOUDFLARE_ACCOUNT_ID     # Your Cloudflare account ID
+CLOUDFLARE_ZONE          # Your domain (e.g., example.com)
+GOOGLE_AI_API_KEY        # Google AI API key for Gemini
+WORKER_API_KEY           # Custom API key for scheduled jobs
+```
+
+### Deployment Environments
+
+- **Production**: `https://cute-bird-slop-machine.YOUR_DOMAIN.workers.dev`
+- **Preview**: `https://cute-bird-slop-machine-pr-{number}.YOUR_DOMAIN.workers.dev`
+- **Local**: `http://localhost:8787` (via `npm run dev`)
+
+### First-Time Setup
+
+1. Fork/clone repository
+2. Add required secrets to GitHub
+3. Run infrastructure workflow to create Cloudflare resources
+4. Update `wrangler.toml` with generated resource IDs
+5. Push to master to trigger first deployment
+
+## Testing
+
+### Bruno API Collection
+
+The project includes a complete Bruno collection for API testing:
+
+1. Install [Bruno](https://www.usebruno.com/) for macOS
+2. Open the `bruno-collection` folder in Bruno
+3. Select environment (local/production)
+4. Run individual requests or the full collection
+
+Available test endpoints:
+- Health Check - Verify service status
+- Generate Prompts - Create 10 new bird prompts
+- Get Top Prompts - Retrieve highest-rated prompts
+- Generate Video - Queue video generation
+- Get Video Status - Check video processing status
+
 ## License
 
 MIT

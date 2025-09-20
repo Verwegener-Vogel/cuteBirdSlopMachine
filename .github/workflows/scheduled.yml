@@ -1,0 +1,78 @@
+name: Scheduled Prompt Generation
+
+on:
+  schedule:
+    # Run every 6 hours to generate fresh bird prompts
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      count:
+        description: 'Number of prompt batches to generate'
+        required: false
+        default: '1'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  generate-prompts:
+    name: Generate Bird Prompts
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Trigger Prompt Generation
+        env:
+          WORKER_URL: https://cute-bird-slop-machine.${{ secrets.CLOUDFLARE_ZONE }}.workers.dev
+          API_KEY: ${{ secrets.WORKER_API_KEY }}
+        run: |
+          BATCH_COUNT="${{ github.event.inputs.count || '1' }}"
+
+          for i in $(seq 1 $BATCH_COUNT); do
+            echo "Generating prompt batch $i of $BATCH_COUNT..."
+
+            response=$(curl -X POST "$WORKER_URL/generate-prompts" \
+              -H "Content-Type: application/json" \
+              -H "X-API-Key: $API_KEY" \
+              -d '{}' \
+              -s -w "\n%{http_code}")
+
+            http_code=$(echo "$response" | tail -n1)
+            body=$(echo "$response" | head -n-1)
+
+            if [ "$http_code" -eq 200 ]; then
+              echo "✅ Batch $i generated successfully"
+              echo "$body" | jq '.promptsGenerated'
+            else
+              echo "❌ Failed to generate batch $i (HTTP $http_code)"
+              echo "$body"
+            fi
+
+            # Wait 2 seconds between batches to avoid rate limits
+            if [ "$i" -lt "$BATCH_COUNT" ]; then
+              sleep 2
+            fi
+          done
+
+      - name: Report Statistics
+        env:
+          WORKER_URL: https://cute-bird-slop-machine.${{ secrets.CLOUDFLARE_ZONE }}.workers.dev
+        run: |
+          echo "📊 Fetching current statistics..."
+
+          curl -s "$WORKER_URL/prompts" | jq '{
+            total_prompts: .prompts | length,
+            avg_cuteness: (.prompts | map(.cutenessScore) | add / length),
+            top_species: (.prompts | map(.species[]) | group_by(.) | map({species: .[0], count: length}) | sort_by(.count) | reverse | .[0:3])
+          }'
