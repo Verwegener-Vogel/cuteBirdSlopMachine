@@ -1,0 +1,26 @@
+name = "cute-bird-slop-machine"
+main = "src/index.ts"
+compatibility_date = "2025-07-20"
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[[kv_namespaces]]
+binding = "PROMPTS_KV"
+id = "YOUR_KV_NAMESPACE_ID"
+preview_id = "YOUR_KV_PREVIEW_ID"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bird-prompts-db"
+database_id = "YOUR_D1_DATABASE_ID"
+
+[[queues.producers]]
+binding = "VIDEO_QUEUE"
+queue = "video-generation-queue"
+
+[[queues.consumers]]
+queue = "video-generation-queue"
+max_batch_size = 10
+max_retries = 3
+dead_letter_queue = "video-generation-dlq"

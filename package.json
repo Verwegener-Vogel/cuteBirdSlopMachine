@@ -1,0 +1,22 @@
+{
+  "name": "cutebirdslopmachine",
+  "version": "1.0.0",
+  "description": "An AI-powered video generation system that creates adorable bird content featuring Northern German Baltic coastal species.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "generate-prompts": "wrangler dev --test-scheduled",
+    "tail": "wrangler tail",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250920.0",
+    "typescript": "^5.9.2",
+    "wrangler": "^4.38.0"
+  }
+}

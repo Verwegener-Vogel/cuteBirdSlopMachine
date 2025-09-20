@@ -1,0 +1,22 @@
+meta {
+  name: Get Top Prompts
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/prompts
+  body: none
+  auth: none
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Returns prompts array", function() {
+    expect(res.body.success).to.equal(true);
+    expect(res.body.prompts).to.be.an('array');
+  });
+}
