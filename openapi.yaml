@@ -1,0 +1,483 @@
+openapi: 3.0.3
+info:
+  title: Cute Bird Slop Machine API
+  description: AI-powered video generation system for adorable Baltic coastal bird content
+  version: 1.0.0
+  contact:
+    name: API Support
+    url: https://github.com/yourusername/cuteBirdSlopMachine
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8787
+    description: Local development server
+  - url: https://cute-bird-slop-machine.{domain}.workers.dev
+    description: Production server
+    variables:
+      domain:
+        default: example
+        description: Your Cloudflare Workers domain
+  - url: https://cute-bird-slop-machine-pr-{number}.{domain}.workers.dev
+    description: Preview deployment
+    variables:
+      number:
+        default: "1"
+        description: Pull request number
+      domain:
+        default: example
+        description: Your Cloudflare Workers domain
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Worker API key for protected endpoints
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - service
+        - timestamp
+      properties:
+        status:
+          type: string
+          example: healthy
+        service:
+          type: string
+          example: Cute Bird Slop Machine
+        timestamp:
+          type: integer
+          format: int64
+          example: 1735689600000
+
+    PromptIdea:
+      type: object
+      required:
+        - prompt
+        - cutenessScore
+        - alignmentScore
+        - visualAppealScore
+        - uniquenessScore
+        - reasoning
+        - tags
+        - species
+      properties:
+        prompt:
+          type: string
+          description: The generated prompt text
+          example: "Fluffy baby eider ducklings swimming in Baltic harbor at sunset"
+        cutenessScore:
+          type: number
+          minimum: 1
+          maximum: 10
+          example: 9.5
+        alignmentScore:
+          type: number
+          minimum: 1
+          maximum: 10
+          example: 10
+        visualAppealScore:
+          type: number
+          minimum: 1
+          maximum: 10
+          example: 8.5
+        uniquenessScore:
+          type: number
+          minimum: 1
+          maximum: 10
+          example: 7
+        reasoning:
+          type: string
+          example: "Baby birds are inherently cute, Baltic harbor setting is perfect"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["baby_birds", "water", "sunset", "harbor"]
+        species:
+          type: array
+          items:
+            type: string
+          example: ["Common Eider"]
+
+    PromptGenerationBatch:
+      type: object
+      required:
+        - ideas
+        - generatedAt
+        - modelVersion
+      properties:
+        ideas:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromptIdea'
+          minItems: 10
+          maxItems: 10
+        generatedAt:
+          type: integer
+          format: int64
+        modelVersion:
+          type: string
+          example: gemini-2.5-pro
+
+    BirdPrompt:
+      type: object
+      required:
+        - id
+        - prompt
+        - createdAt
+        - cutenessScore
+        - alignmentScore
+        - visualAppealScore
+        - uniquenessScore
+        - usageCount
+        - generatedVideos
+        - tags
+        - species
+        - style
+      properties:
+        id:
+          type: string
+          format: uuid
+        prompt:
+          type: string
+        createdAt:
+          type: integer
+          format: int64
+        cutenessScore:
+          type: number
+          minimum: 1
+          maximum: 10
+        alignmentScore:
+          type: number
+          minimum: 1
+          maximum: 10
+        visualAppealScore:
+          type: number
+          minimum: 1
+          maximum: 10
+        uniquenessScore:
+          type: number
+          minimum: 1
+          maximum: 10
+        usageCount:
+          type: integer
+          minimum: 0
+        generatedVideos:
+          type: array
+          items:
+            type: string
+            format: uuid
+        tags:
+          type: array
+          items:
+            type: string
+        species:
+          type: array
+          items:
+            type: string
+        style:
+          type: string
+          enum: [realistic, cartoon, mixed]
+        season:
+          type: string
+          enum: [spring, summer, autumn, winter]
+          nullable: true
+
+    VideoGenerationRequest:
+      type: object
+      required:
+        - promptId
+        - prompt
+        - style
+        - duration
+        - includeSound
+      properties:
+        promptId:
+          type: string
+          format: uuid
+        prompt:
+          type: string
+          example: "Fluffy baby eider ducklings swimming in Baltic harbor at sunset, cartoon style"
+        style:
+          type: string
+          enum: [realistic, cartoon, mixed]
+        duration:
+          type: integer
+          minimum: 10
+          maximum: 30
+          default: 15
+        includeSound:
+          type: boolean
+          default: true
+
+    VideoGenerationResponse:
+      type: object
+      required:
+        - success
+        - videoId
+        - status
+      properties:
+        success:
+          type: boolean
+        videoId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: queued
+
+    VideoResult:
+      type: object
+      required:
+        - id
+        - prompt_id
+        - created_at
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        prompt_id:
+          type: string
+          format: uuid
+        video_url:
+          type: string
+          format: uri
+          nullable: true
+        thumbnail_url:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: integer
+          format: int64
+        duration:
+          type: integer
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        error:
+          type: string
+          nullable: true
+
+    GeneratePromptsResponse:
+      type: object
+      required:
+        - success
+        - promptsGenerated
+        - savedPromptIds
+        - batch
+      properties:
+        success:
+          type: boolean
+        promptsGenerated:
+          type: integer
+          example: 10
+        savedPromptIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        batch:
+          $ref: '#/components/schemas/PromptGenerationBatch'
+
+    PromptsListResponse:
+      type: object
+      required:
+        - success
+        - prompts
+      properties:
+        success:
+          type: boolean
+        prompts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BirdPrompt'
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        success:
+          type: boolean
+          default: false
+        error:
+          type: string
+
+paths:
+  /health:
+    get:
+      summary: Health Check
+      description: Check if the service is healthy and running
+      operationId: healthCheck
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: healthy
+                service: Cute Bird Slop Machine
+                timestamp: 1735689600000
+
+  /generate-prompts:
+    post:
+      summary: Generate Bird Prompts
+      description: Generate 10 new unique bird video prompts with cuteness ratings
+      operationId: generatePrompts
+      tags:
+        - Prompts
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              example: {}
+      responses:
+        '200':
+          description: Prompts generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratePromptsResponse'
+        '401':
+          description: Unauthorized - Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method not allowed
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /prompts:
+    get:
+      summary: Get Top Prompts
+      description: Retrieve the top-rated bird prompts
+      operationId: getTopPrompts
+      tags:
+        - Prompts
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of prompts to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of top prompts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptsListResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /generate-video:
+    post:
+      summary: Generate Video
+      description: Queue a video generation job for a bird prompt
+      operationId: generateVideo
+      tags:
+        - Videos
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VideoGenerationRequest'
+            example:
+              promptId: "550e8400-e29b-41d4-a716-446655440000"
+              prompt: "Fluffy baby eider ducklings swimming in Baltic harbor at sunset, cartoon style"
+              style: cartoon
+              duration: 15
+              includeSound: true
+      responses:
+        '202':
+          description: Video generation queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoGenerationResponse'
+        '401':
+          description: Unauthorized - Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method not allowed
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /videos/{videoId}:
+    get:
+      summary: Get Video Status
+      description: Retrieve the status and details of a specific video
+      operationId: getVideoStatus
+      tags:
+        - Videos
+      parameters:
+        - name: videoId
+          in: path
+          required: true
+          description: The video ID to retrieve
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Video details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoResult'
+        '404':
+          description: Video not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: System
+    description: System health and status endpoints
+  - name: Prompts
+    description: Bird prompt generation and management
+  - name: Videos
+    description: Video generation and retrieval

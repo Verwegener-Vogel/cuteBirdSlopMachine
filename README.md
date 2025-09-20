@@ -180,23 +180,48 @@ This generates a cryptographically secure 32-byte key. Use different keys for ea
 
 **Note**: `wrangler.toml` is gitignored since it contains your specific resource IDs. The template `wrangler.toml.example` is committed for reference.
 
-## Testing
+## API Documentation
 
-### Bruno API Collection
+### OpenAPI Specification
 
-The project includes a complete Bruno collection for API testing:
+The project includes a complete OpenAPI v3 specification in `openapi.yaml`.
 
-1. Install [Bruno](https://www.usebruno.com/) for macOS
-2. Open the `bruno-collection` folder in Bruno
-3. Select environment (local/production)
-4. Run individual requests or the full collection
+#### Testing with API Clients
 
-Available test endpoints:
-- Health Check - Verify service status
-- Generate Prompts - Create 10 new bird prompts
-- Get Top Prompts - Retrieve highest-rated prompts
-- Generate Video - Queue video generation
-- Get Video Status - Check video processing status
+Import `openapi.yaml` into your preferred API client:
+
+**Postman**:
+1. Open Postman → Import → File → Select `openapi.yaml`
+2. Set environment variables for `X-API-Key` header
+3. Configure server URL
+
+**Insomnia**:
+1. Create new request collection → Import from File → Select `openapi.yaml`
+2. Configure environment for API key and base URL
+
+**curl**:
+```bash
+# Health check (no auth required)
+curl http://localhost:8787/health
+
+# Generate prompts (requires API key)
+curl -X POST http://localhost:8787/generate-prompts \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_WORKER_API_KEY" \
+  -d '{}'
+```
+
+**Thunder Client (VS Code)**:
+1. Import OpenAPI → Select `openapi.yaml`
+2. Set environment variables for authentication
+
+### Available Endpoints
+
+- `GET /health` - Service health check
+- `POST /generate-prompts` - Generate 10 rated bird prompts (requires API key)
+- `GET /prompts` - Retrieve top-rated prompts
+- `POST /generate-video` - Queue video generation (requires API key)
+- `GET /videos/{id}` - Get video status and details
 
 ## License
 

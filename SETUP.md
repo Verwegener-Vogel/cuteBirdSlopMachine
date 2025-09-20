@@ -78,16 +78,32 @@ git push origin master
 # GitHub Actions will automatically deploy
 ```
 
-## Testing with Bruno
+## Testing the API
 
-1. Install [Bruno](https://www.usebruno.com/)
-2. Open Bruno and import collection: File → Open Collection → Select `bruno-collection` folder
-3. Set environment variables in Bruno:
-   - Click environment dropdown → Edit
-   - Set `WORKER_API_KEY` to your generated key
-4. Test endpoints:
-   - Health Check (should work without auth)
-   - Generate Prompts (requires API key)
+The API is documented using OpenAPI v3 specification in `openapi.yaml`.
+
+### Quick Test with curl
+
+```bash
+# Test health endpoint
+curl http://localhost:8787/health
+
+# Test prompt generation (replace with your API key)
+curl -X POST http://localhost:8787/generate-prompts \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_WORKER_API_KEY" \
+  -d '{}'
+```
+
+### Using API Clients
+
+1. **Postman**: Import → File → Select `openapi.yaml`
+2. **Insomnia**: Import from File → Select `openapi.yaml`
+3. **VS Code Thunder Client**: Import OpenAPI → Select `openapi.yaml`
+
+Configure your API client with:
+- Base URL: `http://localhost:8787` (local) or your production URL
+- Header: `X-API-Key: YOUR_WORKER_API_KEY` (for protected endpoints)
 
 ## Troubleshooting
 
