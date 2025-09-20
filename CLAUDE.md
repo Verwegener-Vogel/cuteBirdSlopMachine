@@ -182,14 +182,35 @@ The project uses a three-tier GitHub Actions strategy optimized for Cloudflare W
 
 ### Secret Management
 
-Required GitHub Secrets (set in repo settings):
+GitHub uses environment-specific secrets for better security isolation:
+
+#### Repository-Level Secrets (shared)
 ```
 CLOUDFLARE_API_TOKEN     # Scoped token with Workers, D1, KV, Queue permissions
 CLOUDFLARE_ACCOUNT_ID    # Found in Cloudflare dashboard
 CLOUDFLARE_ZONE         # Your domain for worker routes
-GOOGLE_AI_API_KEY       # For Gemini API access
-WORKER_API_KEY          # Custom key for scheduled job auth
 ```
+
+#### Environment-Specific Secrets
+
+**Production Environment:**
+```
+GOOGLE_AI_API_KEY       # Production Gemini API key
+WORKER_API_KEY         # Production auth key (protects /generate-prompts endpoint)
+```
+
+**Preview Environment:**
+```
+GOOGLE_AI_API_KEY       # Dev/staging Gemini API key
+WORKER_API_KEY         # Preview auth key (different from production)
+```
+
+**What is WORKER_API_KEY?**
+- Custom authentication token we generate to protect API endpoints
+- Prevents public abuse of expensive operations (prompt generation, video creation)
+- Generate with: `npm run generate-api-key`
+- Use different keys per environment for security
+- Required in `X-API-Key` header for protected endpoints in production
 
 ### Infrastructure Resource IDs
 

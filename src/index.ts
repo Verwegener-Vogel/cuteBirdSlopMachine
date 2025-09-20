@@ -4,9 +4,11 @@ import { VideoGenerationRequest, VideoGenerationResult } from './types';
 
 export interface Env {
   GOOGLE_AI_API_KEY: string;
+  WORKER_API_KEY: string;
   DB: D1Database;
   VIDEO_QUEUE: Queue;
   PROMPTS_KV: KVNamespace;
+  ENVIRONMENT: string;
 }
 
 export default {
@@ -16,6 +18,21 @@ export default {
     const dbService = new DatabaseService(env.DB);
 
     try {
+      // API Key authentication for sensitive endpoints
+      const requireAuth = ['/generate-prompts', '/generate-video'].includes(url.pathname);
+      if (requireAuth && env.ENVIRONMENT === 'production') {
+        const apiKey = request.headers.get('X-API-Key');
+        if (!apiKey || apiKey !== env.WORKER_API_KEY) {
+          return new Response(
+            JSON.stringify({ error: 'Unauthorized' }),
+            {
+              status: 401,
+              headers: { 'Content-Type': 'application/json' }
+            }
+          );
+        }
+      }
+
       switch (url.pathname) {
         case '/generate-prompts':
           if (request.method !== 'POST') {

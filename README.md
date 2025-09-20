@@ -118,15 +118,39 @@ The project includes comprehensive CI/CD automation:
 
 ### Required GitHub Secrets
 
-Configure these in Settings → Secrets and variables → Actions:
+GitHub supports environment-specific secrets. Configure these in Settings → Secrets and variables → Actions:
 
+#### Repository Secrets (shared across environments)
 ```
 CLOUDFLARE_API_TOKEN      # Cloudflare API token with Worker permissions
 CLOUDFLARE_ACCOUNT_ID     # Your Cloudflare account ID
 CLOUDFLARE_ZONE          # Your domain (e.g., example.com)
-GOOGLE_AI_API_KEY        # Google AI API key for Gemini
-WORKER_API_KEY           # Custom API key for scheduled jobs
 ```
+
+#### Environment Secrets
+Create two environments: `production` and `preview`
+
+**Production Environment:**
+```
+GOOGLE_AI_API_KEY        # Production Google AI API key
+WORKER_API_KEY          # Production API key (generate with: npm run generate-api-key)
+```
+
+**Preview Environment:**
+```
+GOOGLE_AI_API_KEY        # Development/staging Google AI API key (can be same or different)
+WORKER_API_KEY          # Preview API key (should be different from production)
+```
+
+### Generating the Worker API Key
+
+The WORKER_API_KEY is a custom authentication token that protects your API endpoints from public abuse:
+
+```bash
+npm run generate-api-key
+```
+
+This generates a cryptographically secure 32-byte key. Use different keys for each environment.
 
 ### Deployment Environments
 

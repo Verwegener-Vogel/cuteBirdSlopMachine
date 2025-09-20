@@ -2,8 +2,14 @@ name = "cute-bird-slop-machine"
 main = "src/index.ts"
 compatibility_date = "2025-07-20"
 
+[vars]
+ENVIRONMENT = "development"
+
 [env.production]
 vars = { ENVIRONMENT = "production" }
+
+[env.preview]
+vars = { ENVIRONMENT = "preview" }
 
 [[kv_namespaces]]
 binding = "PROMPTS_KV"
