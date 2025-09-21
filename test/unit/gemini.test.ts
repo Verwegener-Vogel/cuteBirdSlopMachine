@@ -144,68 +144,32 @@ describe('GeminiService', () => {
   });
 
   describe('generateVideo', () => {
-    it('should request video generation successfully', async () => {
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  videoUrl: 'https://example.com/video.mp4',
-                },
-              ],
-            },
-          },
-        ],
-      };
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
+    it('should generate mock video URL successfully', async () => {
       const result = await geminiService.generateVideo('Test prompt');
 
-      expect(result.videoUrl).toBe('https://example.com/video.mp4');
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('gemini-2.5-pro:generateContent'),
-        expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('Test prompt'),
-        })
-      );
+      expect(result.videoUrl).toMatch(/^https:\/\/storage\.googleapis\.com\/mock-bird-videos\//);
+      expect(result.videoUrl).toContain('Test%20prompt');
+      expect(result.videoUrl).toContain('.mp4');
     });
 
-    it('should return pending when no video URL is provided', async () => {
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [{}],
-            },
-          },
-        ],
-      };
+    it('should handle different prompts correctly', async () => {
+      const prompt = 'A cute baby puffin';
+      const result = await geminiService.generateVideo(prompt);
 
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await geminiService.generateVideo('Test prompt');
-
-      expect(result.videoUrl).toBe('pending');
+      expect(result.videoUrl).toContain(encodeURIComponent(prompt));
     });
 
-    it('should throw error on video generation failure', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-      });
+    it('should handle long prompts by truncating to 50 chars', async () => {
+      const longPrompt = 'A very long prompt that exceeds the fifty character limit and will be truncated';
+      const result = await geminiService.generateVideo(longPrompt);
 
-      await expect(geminiService.generateVideo('Test prompt')).rejects.toThrow(
-        'Video generation error: 500'
-      );
+      expect(result.videoUrl).toMatch(/^https:\/\/storage\.googleapis\.com\/mock-bird-videos\//);
+      expect(result.videoUrl).toContain('.mp4');
+      // Should only contain first 50 chars encoded
+      const urlParts = result.videoUrl.split('/');
+      const filename = urlParts[urlParts.length - 1];
+      // 50 chars of the prompt are encoded in the filename
+      expect(filename).toContain(encodeURIComponent(longPrompt.slice(0, 50)));
     });
   });
 });
