@@ -82,14 +82,14 @@ export default {
 
           await env.VIDEO_QUEUE.send({
             id: videoId,
-            promptId: videoRequest.promptId,
+            promptId: videoRequest.promptId || null,
             prompt: videoRequest.prompt,
             timestamp: Date.now(),
           });
 
           const video: VideoGenerationResult = {
             id: videoId,
-            promptId: videoRequest.promptId,
+            promptId: videoRequest.promptId || null,
             videoUrl: '',
             createdAt: Date.now(),
             duration: videoRequest.duration || 15,

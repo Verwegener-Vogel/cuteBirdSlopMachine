@@ -145,10 +145,13 @@ export class DatabaseService {
       )
       .run();
 
-    await this.db
-      .prepare('UPDATE prompts SET usage_count = usage_count + 1 WHERE id = ?')
-      .bind(video.promptId)
-      .run();
+    // Only update usage count if promptId is not null
+    if (video.promptId) {
+      await this.db
+        .prepare('UPDATE prompts SET usage_count = usage_count + 1 WHERE id = ?')
+        .bind(video.promptId)
+        .run();
+    }
   }
 
   private async hashPrompt(prompt: string): Promise<string> {

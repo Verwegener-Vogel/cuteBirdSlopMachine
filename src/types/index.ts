@@ -15,16 +15,16 @@ export interface BirdPrompt {
 }
 
 export interface VideoGenerationRequest {
-  promptId: string;
+  promptId?: string;
   prompt: string;
-  style: 'realistic' | 'cartoon' | 'mixed';
-  duration: number;
-  includeSound: boolean;
+  style?: 'realistic' | 'cartoon' | 'mixed';
+  duration?: number;
+  includeSound?: boolean;
 }
 
 export interface VideoGenerationResult {
   id: string;
-  promptId: string;
+  promptId: string | null;
   videoUrl: string;
   thumbnailUrl?: string;
   createdAt: number;

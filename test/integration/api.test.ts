@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
 import worker from '../../src/index';
+import '../test-setup';
 
 describe('Worker API Integration Tests', () => {
   describe('GET /health', () => {
@@ -19,20 +20,16 @@ describe('Worker API Integration Tests', () => {
   });
 
   describe('GET /prompts', () => {
-    it('should handle prompts endpoint', async () => {
+    it('should return prompts list', async () => {
       const request = new Request('http://localhost/prompts');
       const response = await worker.fetch(request, env);
 
-      // May return 200 with empty array or 500 if database not initialized
-      expect([200, 500]).toContain(response.status);
-
-      if (response.status === 200) {
-        const json = await response.json() as any;
-        expect(json).toMatchObject({
-          success: true,
-          prompts: expect.any(Array),
-        });
-      }
+      expect(response.status).toBe(200);
+      const json = await response.json() as any;
+      expect(json).toMatchObject({
+        success: true,
+        prompts: expect.any(Array),
+      });
     });
   });
 
@@ -60,11 +57,13 @@ describe('Worker API Integration Tests', () => {
     });
 
     it('should accept request with valid API key in production mode', async () => {
+      // Use real API key if available from environment
+      const realApiKey = process.env.GOOGLE_AI_API_KEY || env.GOOGLE_AI_API_KEY;
       const testEnv = {
         ...env,
         ENVIRONMENT: 'production',
         WORKER_API_KEY: 'correct-key',
-        GOOGLE_AI_API_KEY: 'test-api-key',
+        GOOGLE_AI_API_KEY: realApiKey || 'test-api-key',
       };
 
       const request = new Request('http://localhost/generate-prompts', {
@@ -78,8 +77,22 @@ describe('Worker API Integration Tests', () => {
 
       const response = await worker.fetch(request, testEnv);
 
-      // Will fail with 500 due to invalid API key, but authentication passes
-      expect(response.status).not.toBe(401);
+      // With real API key, expect success; otherwise just check auth passed
+      if (realApiKey && realApiKey !== 'test-api-key' && realApiKey !== 'demo-api-key') {
+        expect(response.status).toBe(200);
+        const json = await response.json() as any;
+        expect(json).toMatchObject({
+          success: true,
+          promptsGenerated: 10,
+          savedPromptIds: expect.any(Array),
+          batch: expect.objectContaining({
+            ideas: expect.any(Array),
+          }),
+        });
+      } else {
+        // Without real API key, just ensure authentication passes
+        expect(response.status).not.toBe(401);
+      }
     });
 
     it('should reject GET requests', async () => {
@@ -94,7 +107,31 @@ describe('Worker API Integration Tests', () => {
   });
 
   describe('POST /generate-video', () => {
-    it('should validate video generation request', async () => {
+    it('should accept video generation request', async () => {
+      const request = new Request('http://localhost/generate-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': 'test-worker-key',
+        },
+        body: JSON.stringify({
+          prompt: 'Test bird video prompt',
+          duration: 15,
+        }),
+      });
+
+      const response = await worker.fetch(request, env);
+
+      expect(response.status).toBe(202);
+      const json = await response.json() as any;
+      expect(json).toMatchObject({
+        success: true,
+        videoId: expect.any(String),
+        status: 'queued',
+      });
+    });
+
+    it('should accept video generation with promptId', async () => {
       const request = new Request('http://localhost/generate-video', {
         method: 'POST',
         headers: {
@@ -104,16 +141,18 @@ describe('Worker API Integration Tests', () => {
         body: JSON.stringify({
           promptId: 'test-prompt-id',
           prompt: 'Test bird video prompt',
-          style: 'cartoon',
-          duration: 15,
-          includeSound: true,
         }),
       });
 
       const response = await worker.fetch(request, env);
 
-      // May return 202 or 500 depending on database state
-      expect([202, 500]).toContain(response.status);
+      expect(response.status).toBe(202);
+      const json = await response.json() as any;
+      expect(json).toMatchObject({
+        success: true,
+        videoId: expect.any(String),
+        status: 'queued',
+      });
     });
 
     it('should reject GET requests', async () => {
@@ -128,12 +167,13 @@ describe('Worker API Integration Tests', () => {
   });
 
   describe('GET /videos/:id', () => {
-    it('should handle video ID routes', async () => {
-      const request = new Request('http://localhost/videos/test-video-id');
+    it('should return 404 for non-existent video', async () => {
+      const request = new Request('http://localhost/videos/non-existent-id');
       const response = await worker.fetch(request, env);
 
-      // May return 404 or 500 depending on database state
-      expect([404, 500]).toContain(response.status);
+      expect(response.status).toBe(404);
+      const text = await response.text();
+      expect(text).toBe('Video not found');
     });
   });
 
