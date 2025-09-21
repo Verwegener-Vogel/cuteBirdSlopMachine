@@ -25,39 +25,41 @@ describe('GeminiService', () => {
             content: {
               parts: [
                 {
-                  text: JSON.stringify([
-                    {
-                      prompt: 'Fluffy baby eider ducklings swimming',
-                      cutenessScore: 9.5,
-                      alignmentScore: 10,
-                      visualAppealScore: 8.5,
-                      uniquenessScore: 7,
-                      reasoning: 'Baby birds are inherently cute',
-                      tags: ['baby_birds', 'water'],
-                      species: ['Common Eider'],
-                    },
-                    {
-                      prompt: 'Mute swans dancing in morning mist',
-                      cutenessScore: 8,
-                      alignmentScore: 9,
-                      visualAppealScore: 9.5,
-                      uniquenessScore: 8,
-                      reasoning: 'Graceful and beautiful',
-                      tags: ['swans', 'mist'],
-                      species: ['Mute Swan'],
-                    },
-                    // Add 8 more to make 10 total
-                    ...Array(8).fill(null).map((_, i) => ({
-                      prompt: `Test prompt ${i + 3}`,
-                      cutenessScore: 7 + i * 0.1,
-                      alignmentScore: 8,
-                      visualAppealScore: 7.5,
-                      uniquenessScore: 6 + i * 0.2,
-                      reasoning: 'Test reasoning',
-                      tags: ['test'],
-                      species: ['Test Species'],
-                    })),
-                  ]),
+                  text: JSON.stringify({
+                    prompts: [
+                      {
+                        prompt: 'Fluffy baby eider ducklings swimming',
+                        cutenessScore: 9.5,
+                        alignmentScore: 10,
+                        visualAppealScore: 8.5,
+                        uniquenessScore: 7,
+                        reasoning: 'Baby birds are inherently cute',
+                        tags: ['baby_birds', 'water'],
+                        species: ['Common Eider'],
+                      },
+                      {
+                        prompt: 'Mute swans dancing in morning mist',
+                        cutenessScore: 8,
+                        alignmentScore: 9,
+                        visualAppealScore: 9.5,
+                        uniquenessScore: 8,
+                        reasoning: 'Graceful and beautiful',
+                        tags: ['swans', 'mist'],
+                        species: ['Mute Swan'],
+                      },
+                      // Add 8 more to make 10 total
+                      ...Array(8).fill(null).map((_, i) => ({
+                        prompt: `Test prompt ${i + 3}`,
+                        cutenessScore: 7 + i * 0.1,
+                        alignmentScore: 8,
+                        visualAppealScore: 7.5,
+                        uniquenessScore: 6 + i * 0.2,
+                        reasoning: 'Test reasoning',
+                        tags: ['test'],
+                        species: ['Test Species'],
+                      })),
+                    ],
+                  }),
                 },
               ],
             },
@@ -93,6 +95,7 @@ describe('GeminiService', () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: false,
         status: 400,
+        text: async () => 'Bad Request',
       });
 
       await expect(geminiService.generatePromptIdeas()).rejects.toThrow(
@@ -100,25 +103,27 @@ describe('GeminiService', () => {
       );
     });
 
-    it('should handle alternative JSON field names', async () => {
+    it('should handle structured output format', async () => {
       const mockResponse = {
         candidates: [
           {
             content: {
               parts: [
                 {
-                  text: JSON.stringify([
-                    {
-                      prompt: 'Test prompt',
-                      cuteness_score: 9, // Snake case
-                      alignment_score: 8,
-                      visual_appeal_score: 7,
-                      uniqueness_score: 6,
-                      reasoning: 'Test',
-                      tags: [],
-                      species: [],
-                    },
-                  ]),
+                  text: JSON.stringify({
+                    prompts: [
+                      {
+                        prompt: 'Test prompt',
+                        cutenessScore: 9,
+                        alignmentScore: 8,
+                        visualAppealScore: 7,
+                        uniquenessScore: 6,
+                        reasoning: 'Test',
+                        tags: [],
+                        species: [],
+                      },
+                    ],
+                  }),
                 },
               ],
             },

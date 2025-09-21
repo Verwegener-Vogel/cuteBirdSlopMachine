@@ -52,8 +52,8 @@ export default {
               uniquenessScore: idea.uniquenessScore,
               tags: idea.tags,
               species: idea.species,
-              style: idea.prompt.includes('cartoon') ? 'cartoon' :
-                     idea.prompt.includes('realistic') ? 'realistic' : 'mixed',
+              style: idea.prompt?.includes('cartoon') ? 'cartoon' :
+                     idea.prompt?.includes('realistic') ? 'realistic' : 'mixed',
               season: undefined,
             });
             savedPromptIds.push(promptId);

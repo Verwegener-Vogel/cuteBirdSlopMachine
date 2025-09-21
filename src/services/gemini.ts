@@ -12,19 +12,7 @@ Generate exactly 10 unique video prompt ideas with these requirements:
 1. Focus on Baltic coastal birds: Common Eider, Great Cormorant, Mute Swan, Common Tern, Eurasian Oystercatcher, Common Gull, Red-breasted Merganser, Barnacle Goose, White-tailed Eagle
 2. Mix realistic and cartoon-like styles
 3. Emphasize cuteness factors: baby birds, fluffy feathers, playful behavior, group activities
-4. Include Baltic settings: beaches, coastal marshes, cliff colonies, harbor scenes
-
-For each prompt, provide:
-- The prompt text (10-20 words, vivid and specific)
-- Cuteness score (1-10): How adorable the resulting video would be
-- Alignment score (1-10): How well it fits Baltic coastal bird theme
-- Visual appeal score (1-10): How visually interesting it would be
-- Uniqueness score (1-10): How novel and creative the concept is
-- Brief reasoning for scores
-- Relevant tags
-- Species featured
-
-Return as JSON array of objects.`;
+4. Include Baltic settings: beaches, coastal marshes, cliff colonies, harbor scenes`;
 
     const response = await fetch(
       `${GEMINI_API_BASE}/models/gemini-2.5-pro:generateContent?key=${this.apiKey}`,
@@ -38,7 +26,7 @@ Return as JSON array of objects.`;
             {
               parts: [
                 {
-                  text: `${systemPrompt}\n\nGenerate 10 unique bird video prompts following the requirements above. Return as a JSON array.`,
+                  text: `${systemPrompt}\n\nGenerate 10 unique bird video prompts following the requirements above.`,
                 },
               ],
             },
@@ -47,25 +35,85 @@ Return as JSON array of objects.`;
             temperature: 0.9,
             maxOutputTokens: 4000,
             responseMimeType: 'application/json',
+            responseSchema: {
+              type: 'object',
+              properties: {
+                prompts: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      prompt: {
+                        type: 'string',
+                        description: 'The prompt text (10-20 words, vivid and specific)'
+                      },
+                      cutenessScore: {
+                        type: 'number',
+                        description: 'How adorable the resulting video would be (1-10)'
+                      },
+                      alignmentScore: {
+                        type: 'number',
+                        description: 'How well it fits Baltic coastal bird theme (1-10)'
+                      },
+                      visualAppealScore: {
+                        type: 'number',
+                        description: 'How visually interesting it would be (1-10)'
+                      },
+                      uniquenessScore: {
+                        type: 'number',
+                        description: 'How novel and creative the concept is (1-10)'
+                      },
+                      reasoning: {
+                        type: 'string',
+                        description: 'Brief reasoning for the scores'
+                      },
+                      tags: {
+                        type: 'array',
+                        items: {
+                          type: 'string'
+                        },
+                        description: 'Relevant tags for the prompt'
+                      },
+                      species: {
+                        type: 'array',
+                        items: {
+                          type: 'string'
+                        },
+                        description: 'Species featured in the prompt'
+                      }
+                    },
+                    required: ['prompt', 'cutenessScore', 'alignmentScore', 'visualAppealScore', 'uniquenessScore', 'reasoning', 'tags', 'species']
+                  }
+                }
+              },
+              required: ['prompts']
+            }
           },
         }),
       }
     );
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    const ideas = JSON.parse(data.candidates[0].content.parts[0].text);
+
+    // With structured output, the response should already be properly formatted
+    const textContent = data.candidates[0].content.parts[0].text;
+    const parsedData = JSON.parse(textContent);
+
+    // The response should have a 'prompts' array based on our schema
+    const ideas = parsedData.prompts || parsedData;
 
     return {
       ideas: ideas.map((idea: any) => ({
         prompt: idea.prompt,
-        cutenessScore: idea.cutenessScore || idea.cuteness_score,
-        alignmentScore: idea.alignmentScore || idea.alignment_score,
-        visualAppealScore: idea.visualAppealScore || idea.visual_appeal_score,
-        uniquenessScore: idea.uniquenessScore || idea.uniqueness_score,
+        cutenessScore: idea.cutenessScore,
+        alignmentScore: idea.alignmentScore,
+        visualAppealScore: idea.visualAppealScore,
+        uniquenessScore: idea.uniquenessScore,
         reasoning: idea.reasoning,
         tags: idea.tags || [],
         species: idea.species || [],
