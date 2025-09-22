@@ -102,13 +102,52 @@ interface BirdPrompt {
 - Check similarity threshold (>85% = duplicate)
 - Track variations for A/B testing
 
+## Architectural Principles
+
+### Dependency Injection & Testing
+1. **NEVER create legacy/fallback implementations** - Single source of truth only
+2. **Always use interfaces** for external dependencies (APIs, databases, file systems)
+3. **Inject dependencies** through constructor parameters, never instantiate them directly
+4. **Mock external services** in tests - unit tests should NEVER make real API calls
+5. **Separate concerns** - business logic should not know about HTTP clients or API details
+
+### Service Architecture Pattern
+```typescript
+// CORRECT: Interface-based with dependency injection
+interface IVideoGenerator {
+  generateVideo(prompt: string): Promise<VideoResult>;
+}
+
+class ProductionVideoGenerator implements IVideoGenerator { /* real implementation */ }
+class MockVideoGenerator implements IVideoGenerator { /* test implementation */ }
+
+// WRONG: Direct API calls and "legacy" fallbacks
+class Service {
+  async doWork() {
+    if (this.injectedService) {
+      return this.injectedService.work(); // NO! Don't have dual paths
+    }
+    // Legacy implementation... NO! Single implementation only
+  }
+}
+```
+
+### Testing Strategy
+- Unit tests use mock implementations exclusively
+- Integration tests use test containers with controlled dependencies
+- Production uses real implementations via dependency injection container
+- NEVER mix test and production code paths
+
 ## Development Workflow
 
 ### For New Features
 1. Check if it maximizes cute bird content generation
-2. Ensure it works with Cloudflare Workers constraints
-3. Test with actual Baltic bird species
-4. Measure cuteness improvement metrics
+2. Define interfaces for any external dependencies
+3. Implement with dependency injection from the start
+4. Create mock implementations for testing
+5. Ensure it works with Cloudflare Workers constraints
+6. Test with actual Baltic bird species
+7. Measure cuteness improvement metrics
 
 ### Code Style
 - Functional programming where appropriate

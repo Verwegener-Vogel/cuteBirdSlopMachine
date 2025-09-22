@@ -1,4 +1,4 @@
-import { GeminiService } from './gemini';
+import { ServiceFactory } from './ServiceFactory';
 
 export interface VideoPollerEnv {
   GOOGLE_AI_API_KEY: string;
@@ -10,7 +10,8 @@ export class VideoPollerService {
   constructor(private env: VideoPollerEnv) {}
 
   async pollPendingVideos(): Promise<number> {
-    const geminiService = new GeminiService(this.env.GOOGLE_AI_API_KEY);
+    ServiceFactory.initialize(this.env);
+    const operationPoller = ServiceFactory.getContainer().get('operationPoller');
     let processedCount = 0;
 
     try {
@@ -28,7 +29,7 @@ export class VideoPollerService {
 
       for (const video of pendingVideos.results) {
         try {
-          const status = await this.checkOperationStatus(video.operation_name as string);
+          const status = await operationPoller.pollOperation(video.operation_name as string);
 
           if (status.done) {
             if (status.error) {
@@ -69,23 +70,6 @@ export class VideoPollerService {
     return processedCount;
   }
 
-  private async checkOperationStatus(operationName: string): Promise<any> {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/${operationName}`,
-      {
-        method: 'GET',
-        headers: {
-          'x-goog-api-key': this.env.GOOGLE_AI_API_KEY,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to check operation: ${response.status}`);
-    }
-
-    return response.json();
-  }
 
   private extractVideoUrl(response: any): string | null {
     return response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri ||

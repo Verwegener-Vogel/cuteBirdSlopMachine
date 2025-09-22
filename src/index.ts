@@ -3,6 +3,8 @@ import { DatabaseService } from './services/database';
 import { VideoPollerService } from './services/videoPoller';
 import { VideoGenerationRequest, VideoGenerationResult } from './types';
 import { JWT } from './utils/jwt';
+import { ServiceFactory } from './services/ServiceFactory';
+import { DIContainer } from './container/DIContainer';
 
 export interface Env {
   GOOGLE_AI_API_KEY: string;
@@ -17,8 +19,11 @@ export interface Env {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    const geminiService = new GeminiService(env.GOOGLE_AI_API_KEY);
-    const dbService = new DatabaseService(env.DB);
+
+    // Initialize DI container for this request
+    ServiceFactory.initialize(env);
+    const geminiService = ServiceFactory.createGeminiService(env);
+    const dbService = ServiceFactory.createDatabaseService(env);
 
     try {
       // API Key authentication for sensitive endpoints
@@ -222,7 +227,7 @@ export default {
                 );
 
                 if (response.ok) {
-                  const status = await response.json();
+                  const status: any = await response.json();
                   console.log(`Status check for ${video.id}:`, status.done ? 'done' : 'in progress');
 
                   if (status.done) {
@@ -332,14 +337,12 @@ export default {
             cutenessScore: v.cuteness_score,
             duration: `${v.duration}s`,
             urls: {
-              // Prioritize R2 cached URL if available, then Google URL, never mock
-              primary: v.r2_key ? `/api/videos/${v.id}/stream` : (v.google_url || v.video_url),
-              // Secure download link with token
-              download: null, // Will be populated with token
-              // Google URL expires in 2 days, only include as backup
-              temporary_google: v.google_url,
-              // Original mock/fallback URL
-              original: v.video_url,
+              // Stream from R2 if available, otherwise not available
+              stream: v.r2_key ? `/api/videos/${v.id}/stream` : null,
+              // Secure download link with token (only if in R2)
+              download: null as string | null, // Will be populated with token if available
+              // Fallback URL for legacy data
+              fallback: v.video_url,
             },
             timestamps: {
               created: new Date(v.created_at).toISOString(),
@@ -347,9 +350,9 @@ export default {
             },
           }));
 
-          // Generate download tokens for each video
+          // Generate download tokens only for videos in R2
           for (const video of formattedVideos) {
-            if (video.id) {
+            if (video.id && video.urls.stream) {
               const token = await JWT.createToken(video.id, 'download', env.WORKER_API_KEY, 15);
               video.urls.download = `/api/videos/${video.id}/download?token=${token}`;
             }
@@ -703,8 +706,10 @@ export default {
   },
 
   async queue(batch: MessageBatch, env: Env): Promise<void> {
-    const geminiService = new GeminiService(env.GOOGLE_AI_API_KEY);
-    const dbService = new DatabaseService(env.DB);
+    // Initialize DI container for queue processing
+    ServiceFactory.initialize(env);
+    const geminiService = ServiceFactory.createGeminiService(env);
+    const dbService = ServiceFactory.createDatabaseService(env);
 
     for (const message of batch.messages) {
       const { id, promptId, prompt } = message.body as any;
@@ -755,8 +760,9 @@ export default {
       }
     } else {
       // Generate prompts every 6 hours
-      const geminiService = new GeminiService(env.GOOGLE_AI_API_KEY);
-      const dbService = new DatabaseService(env.DB);
+      ServiceFactory.initialize(env);
+      const geminiService = ServiceFactory.createGeminiService(env);
+      const dbService = ServiceFactory.createDatabaseService(env);
 
       try {
         const batch = await geminiService.generatePromptIdeas();

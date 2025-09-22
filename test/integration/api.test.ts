@@ -283,10 +283,9 @@ describe('Worker API Integration Tests', () => {
 
       const response = await worker.fetch(request, env);
 
-      // Since fetch is mocked and succeeds, the request goes through
-      // The actual JSON parsing happens inside the handler
-      // With mocked fetch returning successful responses, we get 200
-      expect(response.status).toBe(200);
+      // The malformed JSON causes an error when parsing
+      // This is correct behavior - we should get a 500 error
+      expect(response.status).toBe(500);
     });
   });
 });
