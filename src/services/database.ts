@@ -127,11 +127,11 @@ export class DatabaseService {
     return results;
   }
 
-  async saveVideo(video: VideoGenerationResult): Promise<void> {
+  async saveVideo(video: VideoGenerationResult, operationName?: string): Promise<void> {
     await this.db
       .prepare(
-        `INSERT INTO videos (id, prompt_id, video_url, thumbnail_url, created_at, duration, status, error)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO videos (id, prompt_id, video_url, thumbnail_url, created_at, duration, status, error, operation_name)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         video.id,
@@ -141,7 +141,8 @@ export class DatabaseService {
         video.createdAt,
         video.duration,
         video.status,
-        video.error || null
+        video.error || null,
+        operationName || null
       )
       .run();
 

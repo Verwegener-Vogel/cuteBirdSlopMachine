@@ -1,0 +1,19 @@
+meta {
+  name: Get Video Status
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/videos/{videoId}
+  body: none
+  auth: none
+}
+
+params:path {
+  videoId: YOUR_VALUE_HERE
+}
+
+docs {
+  Retrieve the status and details of a specific video
+}

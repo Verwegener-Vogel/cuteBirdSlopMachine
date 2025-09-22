@@ -36,11 +36,29 @@ Create an automated system that generates the maximum volume of adorable bird AI
   - Visual appeal likelihood
   - Uniqueness score
 
-#### Video Generation
-- Use Google AI Video API with dialogue/scene capabilities
-- Target output: 10-30 second clips
-- Mix realistic and stylized rendering
-- Include ambient bird sounds when possible
+#### Video Generation - Veo 3.0 API (CRITICAL - DO NOT CHANGE)
+- **Model**: `veo-3.0-generate-001` (stable version)
+- **Endpoint**: `https://generativelanguage.googleapis.com/v1beta/models/veo-3.0-generate-001:predictLongRunning`
+- **Authentication**: API key via `x-goog-api-key` header (MUST be lowercase, not X-Goog-Api-Key)
+- **Request Format**:
+  ```json
+  {
+    "instances": [{
+      "prompt": "Text description of video"
+    }],
+    "parameters": {
+      "aspectRatio": "16:9" // Optional
+    }
+  }
+  ```
+- **Operation Polling**: Check status at `https://generativelanguage.googleapis.com/v1beta/{operation_name}`
+- **IMPORTANT**: Videos are only retained for 2 days on Google servers - MUST download to R2 immediately
+- **KNOWN ISSUE**: Operation status checks may return 403 errors - this appears to be an API limitation/bug
+- **Video Duration**: 11 seconds to 6 minutes generation time
+- **Target output**: 10-30 second clips
+- **Pricing**: $0.75 per second of video with audio
+- **Mix realistic and stylized rendering**
+- **Include ambient bird sounds when possible**
 
 ## Content Guidelines
 
@@ -280,3 +298,6 @@ For updates:
 - `npm run generate-prompts` - Test scheduled prompt generation
 - `wrangler tail` - Live production logs
 - `wrangler d1 execute bird-prompts-db --command "SELECT COUNT(*) FROM prompts" --remote` - Check prompt count
+- always update the openapi specs when adding, changing or removing endpoints
+- the local server should always respond on port 8787. never launch another instance but kill the old one.
+- don't skip fixing root causes by explaining me you are not responsible. fix all bugs on the way even if they are not directly related to our current issue. don't skimp on code quality and cleanliness by adding mocks or commenting out code but fix it to the root cause.

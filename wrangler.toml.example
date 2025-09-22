@@ -30,3 +30,14 @@ queue = "video-generation-queue"
 max_batch_size = 10
 max_retries = 3
 dead_letter_queue = "video-generation-dlq"
+
+[[r2_buckets]]
+binding = "VIDEO_STORAGE"
+bucket_name = "cute-bird-videos"
+preview_bucket_name = "cute-bird-videos-preview"
+
+[triggers]
+# Poll for video completion every minute
+crons = ["*/1 * * * *", "0 */6 * * *"]
+# First cron: Poll videos every minute
+# Second cron: Generate new prompts every 6 hours

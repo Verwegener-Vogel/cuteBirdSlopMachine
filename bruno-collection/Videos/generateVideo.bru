@@ -1,0 +1,30 @@
+meta {
+  name: Generate Video
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/generate-video
+  body: json
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+  Content-Type: application/json
+}
+
+body:json {
+{
+    "promptId": "550e8400-e29b-41d4-a716-446655440000",
+    "prompt": "Fluffy baby eider ducklings swimming in Baltic harbor at sunset, cartoon style",
+    "style": "cartoon",
+    "duration": 15,
+    "includeSound": true
+  }
+}
+
+docs {
+  Queue a video generation job for a bird prompt
+}

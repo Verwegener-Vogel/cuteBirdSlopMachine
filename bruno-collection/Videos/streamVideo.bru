@@ -1,0 +1,23 @@
+meta {
+  name: Stream Video from R2 Storage
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/videos/{videoId}/stream
+  body: none
+  auth: bearer
+}
+
+headers {
+  Authorization: Bearer {{bearerToken}}
+}
+
+params:path {
+  videoId: YOUR_VALUE_HERE
+}
+
+docs {
+  Stream a video file from R2 storage with authentication
+}

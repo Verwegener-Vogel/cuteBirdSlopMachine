@@ -4,7 +4,7 @@ import { beforeAll } from 'vitest';
 beforeAll(async () => {
   // Create the tables needed for tests
   const createTablesSQL = `
-    -- Create prompts table
+    -- Create prompts table with all required columns
     CREATE TABLE IF NOT EXISTS prompts (
       id TEXT PRIMARY KEY,
       prompt TEXT NOT NULL,
@@ -15,7 +15,10 @@ beforeAll(async () => {
       uniqueness_score REAL,
       style TEXT,
       season TEXT,
-      usage_count INTEGER DEFAULT 0
+      usage_count INTEGER DEFAULT 0,
+      tags TEXT,
+      species TEXT,
+      prompt_hash TEXT UNIQUE
     );
 
     -- Create prompt_tags table
@@ -34,7 +37,7 @@ beforeAll(async () => {
       PRIMARY KEY (prompt_id, species)
     );
 
-    -- Create videos table
+    -- Create videos table with all columns including R2 storage
     CREATE TABLE IF NOT EXISTS videos (
       id TEXT PRIMARY KEY,
       prompt_id TEXT,
@@ -43,7 +46,11 @@ beforeAll(async () => {
       created_at INTEGER NOT NULL,
       duration INTEGER,
       status TEXT NOT NULL,
-      error TEXT
+      error TEXT,
+      operation_name TEXT,
+      google_url TEXT,
+      r2_key TEXT,
+      downloaded_at INTEGER
     );
 
     -- Create indices for performance

@@ -144,32 +144,65 @@ describe('GeminiService', () => {
   });
 
   describe('generateVideo', () => {
-    it('should generate mock video URL successfully', async () => {
+    it('should generate video URL via Veo API successfully', async () => {
+      // Mock the Veo API responses
+      vi.mocked(global.fetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ name: 'models/veo-3.0-generate-001/operations/test123' }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            name: 'models/veo-3.0-generate-001/operations/test123',
+            done: true,
+            response: {
+              generateVideoResponse: {
+                generatedSamples: [{
+                  video: {
+                    uri: 'https://generativelanguage.googleapis.com/v1beta/files/abc123:download?alt=media'
+                  }
+                }]
+              }
+            }
+          }),
+        } as Response);
+
       const result = await geminiService.generateVideo('Test prompt');
 
-      expect(result.videoUrl).toMatch(/^https:\/\/storage\.googleapis\.com\/mock-bird-videos\//);
-      expect(result.videoUrl).toContain('Test%20prompt');
-      expect(result.videoUrl).toContain('.mp4');
+      expect(result.videoUrl).toBe('https://generativelanguage.googleapis.com/v1beta/files/abc123:download?alt=media');
+      expect(result.operationName).toBe('models/veo-3.0-generate-001/operations/test123');
     });
 
-    it('should handle different prompts correctly', async () => {
-      const prompt = 'A cute baby puffin';
-      const result = await geminiService.generateVideo(prompt);
+    it('should handle API errors properly', async () => {
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        text: async () => 'API key invalid',
+      } as Response);
 
-      expect(result.videoUrl).toContain(encodeURIComponent(prompt));
+      await expect(geminiService.generateVideo('Test prompt')).rejects.toThrow('API error: 403');
     });
 
-    it('should handle long prompts by truncating to 50 chars', async () => {
-      const longPrompt = 'A very long prompt that exceeds the fifty character limit and will be truncated';
-      const result = await geminiService.generateVideo(longPrompt);
+    it('should timeout after max attempts', async () => {
+      // Mock initial operation start
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ name: 'models/veo-3.0-generate-001/operations/test123' }),
+      } as Response);
 
-      expect(result.videoUrl).toMatch(/^https:\/\/storage\.googleapis\.com\/mock-bird-videos\//);
-      expect(result.videoUrl).toContain('.mp4');
-      // Should only contain first 50 chars encoded
-      const urlParts = result.videoUrl.split('/');
-      const filename = urlParts[urlParts.length - 1];
-      // 50 chars of the prompt are encoded in the filename
-      expect(filename).toContain(encodeURIComponent(longPrompt.slice(0, 50)));
+      // Mock 60 polling attempts returning not done
+      for (let i = 0; i < 60; i++) {
+        vi.mocked(global.fetch).mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            name: 'models/veo-3.0-generate-001/operations/test123',
+            done: false
+          }),
+        } as Response);
+      }
+
+      await expect(geminiService.generateVideo('Test prompt')).rejects.toThrow('Video generation timed out after 300 seconds');
     });
   });
 });

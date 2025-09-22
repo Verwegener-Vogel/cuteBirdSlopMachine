@@ -25,13 +25,18 @@ CREATE TABLE IF NOT EXISTS videos (
     thumbnail_url TEXT,
     created_at INTEGER NOT NULL,
     duration INTEGER,
-    status TEXT CHECK(status IN ('pending', 'processing', 'completed', 'failed')),
+    status TEXT CHECK(status IN ('pending', 'processing', 'completed', 'failed', 'downloaded')),
     error TEXT,
+    operation_name TEXT,
+    google_url TEXT,
+    r2_key TEXT,
+    downloaded_at INTEGER,
     FOREIGN KEY (prompt_id) REFERENCES prompts(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_videos_prompt ON videos(prompt_id);
 CREATE INDEX IF NOT EXISTS idx_videos_status ON videos(status);
+CREATE INDEX IF NOT EXISTS idx_videos_operation ON videos(operation_name);
 
 CREATE TABLE IF NOT EXISTS prompt_tags (
     prompt_id TEXT NOT NULL,

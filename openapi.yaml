@@ -36,6 +36,10 @@ components:
       in: header
       name: X-API-Key
       description: Worker API key for protected endpoints
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Bearer token for authenticated video streaming
 
   schemas:
     HealthResponse:
@@ -443,6 +447,90 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /video-status:
+    get:
+      summary: Get All Video Statuses
+      description: Retrieve the status of all video generation requests with optional update from Google API
+      operationId: getVideoStatuses
+      tags:
+        - Videos
+      parameters:
+        - name: update
+          in: query
+          required: false
+          description: If true, checks and updates pending video statuses from Google API
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Video statuses retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - summary
+                  - videos
+                properties:
+                  summary:
+                    type: object
+                    required:
+                      - total
+                      - byStatus
+                      - lastUpdated
+                      - updatePerformed
+                    properties:
+                      total:
+                        type: integer
+                        example: 12
+                      byStatus:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                        example:
+                          pending: 4
+                          completed: 6
+                          failed: 2
+                      lastUpdated:
+                        type: integer
+                        format: int64
+                      updatePerformed:
+                        type: boolean
+                  videos:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - status
+                        - hasUrl
+                        - createdAt
+                        - ageSeconds
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        status:
+                          type: string
+                          enum: [pending, processing, completed, failed]
+                        error:
+                          type: string
+                          nullable: true
+                        hasUrl:
+                          type: boolean
+                        createdAt:
+                          type: integer
+                          format: int64
+                        ageSeconds:
+                          type: integer
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /videos/{videoId}:
     get:
       summary: Get Video Status
@@ -460,7 +548,13 @@ paths:
             format: uuid
       responses:
         '200':
-          description: Video details retrieved
+          description: Video details retrieved (success)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoResult'
+        '424':
+          description: Failed Dependency - Video generation failed
           content:
             application/json:
               schema:
@@ -473,6 +567,166 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /videos:
+    get:
+      summary: List All Videos (Human Readable)
+      description: Get a formatted list of all videos with their details
+      operationId: listVideos
+      tags:
+        - Videos
+      responses:
+        '200':
+          description: List of all videos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalVideos:
+                    type: integer
+                  videos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        prompt:
+                          type: string
+                        status:
+                          type: string
+                        cutenessScore:
+                          type: number
+                        duration:
+                          type: string
+                        urls:
+                          type: object
+                          properties:
+                            primary:
+                              type: string
+                              description: Primary URL - R2 cached if available, otherwise fallback
+                            download:
+                              type: string
+                              nullable: true
+                              description: Secure download link with JWT token (15 min expiry)
+                            temporary_google:
+                              type: string
+                              nullable: true
+                              description: Google URL (expires in 2 days)
+                            original:
+                              type: string
+                              description: Original video URL
+                        timestamps:
+                          type: object
+                          properties:
+                            created:
+                              type: string
+                              format: date-time
+                            downloaded:
+                              type: string
+                              format: date-time
+                              nullable: true
+
+  /videos.html:
+    get:
+      summary: HTML Video Gallery
+      description: Returns a self-contained HTML page with all videos in an embedded player gallery
+      operationId: getVideoGallery
+      tags:
+        - Videos
+      responses:
+        '200':
+          description: HTML page with video gallery
+          content:
+            text/html:
+              schema:
+                type: string
+                description: Complete HTML page with embedded videos, CSS, and JavaScript
+
+  /api/videos/{videoId}/download:
+    get:
+      summary: Download Video
+      description: Download a video file with JWT token authentication
+      operationId: downloadVideo
+      tags:
+        - Videos
+      parameters:
+        - name: videoId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: token
+          in: query
+          description: JWT token for authentication (15 minute expiry)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Video file download
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: 'attachment; filename="bird-video.mp4"'
+        '302':
+          description: Redirect to original video URL if no R2 copy exists
+        '401':
+          description: Token required in production
+        '403':
+          description: Invalid or expired token
+        '404':
+          description: Video not found or not available
+
+  /api/videos/{videoId}/stream:
+    get:
+      summary: Stream Video from R2 Storage
+      description: Stream a video file from R2 storage with authentication
+      operationId: streamVideo
+      tags:
+        - Videos
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: videoId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Range
+          in: header
+          description: Range header for partial content requests
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Video stream
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+        '206':
+          description: Partial content (range request)
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized - Missing or invalid Bearer token
+        '403':
+          description: Forbidden - Invalid token
+        '404':
+          description: Video not found or not available for streaming
 
 tags:
   - name: System

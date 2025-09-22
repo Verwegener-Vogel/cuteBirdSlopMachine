@@ -1,0 +1,19 @@
+meta {
+  name: Get All Video Statuses
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/video-status
+  body: none
+  auth: none
+}
+
+params:query {
+  update: false
+}
+
+docs {
+  Retrieve the status of all video generation requests with optional update from Google API
+}

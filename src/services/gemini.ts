@@ -141,85 +141,98 @@ Generate exactly 10 unique video prompt ideas with these requirements:
     return response.json();
   }
 
-  async generateVideo(prompt: string): Promise<{ videoUrl: string }> {
-    // Note: Veo API requires special access and is not available with standard Gemini API keys
-    // For now, we'll implement a mock video generation that simulates the process
+  async generateVideo(prompt: string): Promise<{ videoUrl: string; operationName?: string }> {
+    // Using Veo 3.0 API with predictLongRunning endpoint
+    console.log(`Generating video with Veo 3.0 for prompt: ${prompt}`);
 
-    console.log(`Mock video generation for prompt: ${prompt}`);
-
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Generate a mock video URL based on the prompt
-    const videoId = crypto.randomUUID();
-    const encodedPrompt = encodeURIComponent(prompt.slice(0, 50));
-
-    // In production, this would be replaced with actual Veo API integration
-    // once proper access is granted
-    const mockVideoUrl = `https://storage.googleapis.com/mock-bird-videos/${videoId}/${encodedPrompt}.mp4`;
-
-    return {
-      videoUrl: mockVideoUrl,
-    };
-
-    /* Original Veo implementation - kept for future use when API access is available:
-
-    const response = await fetch(
-      `${GEMINI_API_BASE}/models/veo-3.0-generate-001:predictLongRunning`,
-      {
-        method: 'POST',
-        headers: {
-          'x-goog-api-key': this.apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          instances: [{
-            prompt: prompt,
-          }],
-          parameters: {
-            aspectRatio: '16:9',
-            resolution: '720p',
-            negativePrompt: 'low quality, blurry, distorted',
+    try {
+      // Start the video generation with Veo
+      const response = await fetch(
+        `${GEMINI_API_BASE}/models/veo-3.0-generate-001:predictLongRunning`,
+        {
+          method: 'POST',
+          headers: {
+            'x-goog-api-key': this.apiKey,
+            'Content-Type': 'application/json',
           },
-        }),
+          body: JSON.stringify({
+            instances: [{
+              prompt: `A cute video of ${prompt}. Nature documentary style, high quality, adorable moments.`
+            }]
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Veo API error: ${response.status}`, errorText);
+        throw new Error(`API error: ${response.status}`);
       }
-    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Veo API error response: ${response.status}`, errorText);
-      throw new Error(`Video generation error: ${response.status} - ${errorText}`);
-    }
+      const operation = await response.json();
+      console.log('Veo operation started:', operation.name);
+      const operationName = operation.name;
 
-    const operation = await response.json();
+      // Poll the operation until it's done
+      const maxAttempts = 60; // 5 minutes max (5 seconds * 60)
+      let attempts = 0;
 
-    // Poll the operation until it's done
-    const maxAttempts = 60;
-    let attempts = 0;
-
-    while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-
-      const status = await this.pollOperation(operation.name);
-
-      if (status.done) {
-        if (status.error) {
-          throw new Error(`Video generation failed: ${JSON.stringify(status.error)}`);
+      while (attempts < maxAttempts) {
+        // In test environment, skip the delay
+        if (this.apiKey !== 'test-api-key') {
+          await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
         }
 
-        const videoUrl = status.response?.predictions?.[0]?.video?.uri ||
-                        status.response?.predictions?.[0]?.videoUri ||
-                        'completed-but-no-url';
+        const statusResponse = await fetch(
+          `${GEMINI_API_BASE}/${operation.name}`,
+          {
+            method: 'GET',
+            headers: {
+              'x-goog-api-key': this.apiKey,
+            },
+          }
+        );
 
-        return { videoUrl };
+        if (!statusResponse.ok) {
+          const errorText = await statusResponse.text();
+          console.error('Failed to check operation status:', errorText);
+          attempts++;
+          continue;
+        }
+
+        const status = await statusResponse.json();
+        console.log(`Operation status (attempt ${attempts + 1}):`, JSON.stringify(status));
+
+        if (status.done) {
+          if (status.error) {
+            throw new Error(`Video generation failed: ${JSON.stringify(status.error)}`);
+          }
+
+          // Extract video URL from Veo response
+          const videoUri = status.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri ||
+                          status.response?.predictions?.[0]?.videoUri ||
+                          status.response?.videoUri ||
+                          status.response?.uri;
+
+          if (videoUri) {
+            console.log('Video generated successfully:', videoUri);
+            return { videoUrl: videoUri, operationName };
+          } else {
+            console.error('Video completed but no URL found in response:', JSON.stringify(status.response));
+            throw new Error('Video generation completed but no URL was returned');
+          }
+        }
+
+        attempts++;
       }
 
-      attempts++;
-    }
+      // Timeout - throw error instead of using mock
+      throw new Error(`Video generation timed out after ${maxAttempts * 5} seconds`);
 
-    return {
-      videoUrl: `operation-timeout:${operation.name}`,
-    };
-    */
+    } catch (error) {
+      console.error('Video generation failed:', error);
+      // Re-throw the error to properly handle it upstream
+      throw error;
+    }
   }
 }
