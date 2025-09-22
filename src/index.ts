@@ -377,6 +377,96 @@ export default {
             }
           );
 
+        case '/test-video.html':
+          // Simple test page for debugging video playback
+          const testHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f0f0f0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        video { width: 100%; height: auto; background: black; }
+        .status { margin: 10px 0; padding: 10px; background: #e0e0e0; border-radius: 5px; }
+        button { margin: 5px; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Video Test</h1>
+        <video id="testVideo" controls></video>
+        <div class="status" id="status">Ready</div>
+        <button onclick="testDirectLoad()">Test Direct Load</button>
+        <button onclick="testLazyLoad()">Test Lazy Load</button>
+        <button onclick="testWithSource()">Test with Source Element</button>
+        <div id="log" style="margin-top: 20px; font-family: monospace; font-size: 12px;"></div>
+    </div>
+    <script>
+        const video = document.getElementById('testVideo');
+        const status = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+        const videoUrl = '/api/videos/034956ca-cb3b-4b53-9062-d3370b3e84d5/stream';
+
+        function log(msg) {
+            logDiv.innerHTML += msg + '<br>';
+            console.log(msg);
+        }
+
+        // Add all event listeners
+        ['loadstart', 'loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough', 'error', 'stalled'].forEach(event => {
+            video.addEventListener(event, (e) => {
+                log(\`Event: \${event}\`);
+                if (event === 'error' && video.error) {
+                    log(\`Error code: \${video.error.code}, message: \${video.error.message}\`);
+                }
+                if (event === 'canplay' || event === 'canplaythrough') {
+                    status.textContent = 'Video loaded successfully!';
+                    status.style.background = '#90EE90';
+                }
+            });
+        });
+
+        function testDirectLoad() {
+            log('Testing direct src assignment...');
+            video.src = videoUrl;
+            video.load();
+        }
+
+        function testLazyLoad() {
+            log('Testing lazy load...');
+            video.removeAttribute('src');
+            while (video.firstChild) video.removeChild(video.firstChild);
+            setTimeout(() => {
+                video.src = videoUrl;
+                video.load();
+            }, 100);
+        }
+
+        function testWithSource() {
+            log('Testing with source element...');
+            video.removeAttribute('src');
+            while (video.firstChild) video.removeChild(video.firstChild);
+            const source = document.createElement('source');
+            source.src = videoUrl;
+            source.type = 'video/mp4';
+            video.appendChild(source);
+            video.load();
+        }
+
+        // Test fetch
+        fetch(videoUrl, { method: 'HEAD' }).then(r => {
+            log(\`Fetch test: \${r.status} \${r.statusText}\`);
+        }).catch(e => {
+            log(\`Fetch error: \${e.message}\`);
+        });
+    </script>
+</body>
+</html>`;
+          return new Response(testHtml, {
+            headers: { 'Content-Type': 'text/html' }
+          });
+
         case '/videos.html':
           // HTML video gallery with embedded players
           const htmlVideos = await env.DB
@@ -396,7 +486,7 @@ export default {
             `)
             .all();
 
-          // Generate HTML with embedded video players
+          // Generate HTML with enhanced video players
           const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -405,114 +495,459 @@ export default {
     <title>🐦 Cute Bird Slop Machine - Video Gallery</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            --card-hover-shadow: 0 20px 40px rgba(0,0,0,0.25);
+            --cuteness-gradient: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            --download-gradient: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
+            background-attachment: fixed;
             min-height: 100vh;
             padding: 20px;
         }
+
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease;
+        }
+
         h1 {
             color: white;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-size: clamp(2rem, 5vw, 3rem);
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
         }
+
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 25px;
+            display: inline-flex;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .stat {
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .stat strong {
+            font-size: 1.2em;
+            display: block;
+        }
+
+        /* Video Grid */
         .video-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 30px;
+            animation: fadeInUp 0.8s ease 0.2s both;
         }
+
+        @media (max-width: 768px) {
+            .video-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        /* Video Card */
         .video-card {
             background: white;
-            border-radius: 15px;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease;
+            box-shadow: var(--card-shadow);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: fadeInScale 0.5s ease both;
+            position: relative;
         }
+
         .video-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--card-hover-shadow);
         }
-        .video-player {
+
+        /* Video Container */
+        .video-container {
+            position: relative;
             width: 100%;
-            height: 250px;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
             background: #000;
+            overflow: hidden;
         }
-        .video-info {
-            padding: 15px;
+
+        .video-player {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
-        .video-prompt {
+
+        /* Custom Video Controls Overlay */
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .video-container:hover .video-overlay.show-on-hover {
+            opacity: 1;
+        }
+
+        .play-button {
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+            pointer-events: all;
+        }
+
+        .play-button:hover {
+            transform: scale(1.1);
+        }
+
+        .play-icon {
+            width: 0;
+            height: 0;
+            border-left: 25px solid #667eea;
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+            margin-left: 5px;
+        }
+
+        /* Loading State */
+        .video-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
             font-size: 14px;
-            color: #333;
-            margin-bottom: 10px;
-            line-height: 1.4;
+            display: none;
+            z-index: 10;
         }
+
+        .video-loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        /* Error State */
+        .video-error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .video-error.active {
+            display: block;
+        }
+
+        .retry-button {
+            background: var(--download-gradient);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        /* Video Info */
+        .video-info {
+            padding: 20px;
+        }
+
+        .video-prompt {
+            font-size: 15px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
         .video-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
+
+        .meta-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .cuteness-score {
-            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            background: var(--cuteness-gradient);
             color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 12px;
+            padding: 6px 14px;
+            border-radius: 25px;
+            font-size: 13px;
             font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
-        .download-btn {
-            background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+
+        .video-duration {
+            background: rgba(103, 126, 234, 0.1);
+            color: #667eea;
+            padding: 6px 14px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            background: var(--download-gradient);
             color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
+            padding: 8px 16px;
+            border-radius: 25px;
             text-decoration: none;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: bold;
-            transition: opacity 0.3s;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
-        .download-btn:hover {
-            opacity: 0.8;
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
         }
+
+        .share-btn {
+            background: linear-gradient(45deg, #56ab2f 0%, #a8e063 100%);
+        }
+
+        /* Loading Animation */
         .loading {
             text-align: center;
             color: white;
-            padding: 20px;
+            padding: 60px 20px;
+            font-size: 1.2em;
         }
+
+        /* No Videos State */
         .no-videos {
             text-align: center;
             color: white;
-            padding: 40px;
-            font-size: 1.2em;
+            padding: 60px 20px;
+            font-size: 1.3em;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            margin: 40px auto;
+            max-width: 600px;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: white;
+            color: #333;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Progressive Enhancement */
+        @supports (backdrop-filter: blur(10px)) {
+            .stats-bar {
+                background: rgba(255,255,255,0.05);
+            }
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🐦 Cute Bird Slop Machine</h1>
+        <div class="header">
+            <h1>🐦 Cute Bird Slop Machine</h1>
+            <p class="subtitle">AI-Generated Baltic Bird Videos</p>
+            <div class="stats-bar">
+                <div class="stat">
+                    <strong>${htmlVideos.results.length}</strong>
+                    Videos Available
+                </div>
+                <div class="stat">
+                    <strong>${htmlVideos.results.filter((v: any) => v.cuteness_score && v.cuteness_score >= 8).length}</strong>
+                    Ultra Cute (8+)
+                </div>
+                <div class="stat">
+                    <strong>${(htmlVideos.results.reduce((acc: number, v: any) => acc + (v.cuteness_score || 0), 0) / Math.max(htmlVideos.results.length, 1)).toFixed(1)}</strong>
+                    Avg Cuteness
+                </div>
+            </div>
+        </div>
+
         <div class="video-grid">
             ${htmlVideos.results.length === 0 ?
-              '<div class="no-videos">No videos available yet. Start generating some cute bird content!</div>' :
-              htmlVideos.results.map((v: any) => {
-                // Use R2 streaming for all videos (they all have r2_key due to WHERE clause)
+              '<div class="no-videos">🎬 No videos available yet<br><br>Start generating some adorable Baltic bird content!</div>' :
+              htmlVideos.results.map((v: any, index: number) => {
                 const videoUrl = `/api/videos/${v.id}/stream`;
                 const downloadUrl = `/api/videos/${v.id}/download`;
+                const animationDelay = index * 0.1;
                 return `
-                <div class="video-card">
-                    <video class="video-player" controls preload="metadata" loading="lazy">
-                        <source src="${videoUrl}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
+                <div class="video-card" style="animation-delay: ${animationDelay}s" data-video-id="${v.id}">
+                    <div class="video-container">
+                        <video
+                            class="video-player"
+                            controls
+                            preload="none"
+                            poster=""
+                            data-src="${videoUrl}">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="video-loading">
+                            <div class="spinner"></div>
+                            Loading...
+                        </div>
+                        <div class="video-error">
+                            <div>⚠️ Failed to load video</div>
+                            <button class="retry-button" onclick="retryVideo('${v.id}')">Retry</button>
+                        </div>
+                    </div>
                     <div class="video-info">
-                        <div class="video-prompt">${v.prompt || 'A delightful bird video'}</div>
+                        <div class="video-prompt">${v.prompt || '🐦 A delightful Baltic bird video'}</div>
                         <div class="video-meta">
-                            <span class="cuteness-score">💕 ${v.cuteness_score ? v.cuteness_score.toFixed(1) : 'N/A'}/10</span>
-                            <a href="${downloadUrl}" class="download-btn" data-video-id="${v.id}" download="bird-${v.id}.mp4">📥 Download</a>
+                            <div class="meta-left">
+                                <span class="cuteness-score">
+                                    💕 ${v.cuteness_score ? v.cuteness_score.toFixed(1) : 'N/A'}/10
+                                </span>
+                                <span class="video-duration" data-video-id="${v.id}">--:--</span>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="action-btn share-btn" onclick="shareVideo('${v.id}')">
+                                    📤 Share
+                                </button>
+                                <a href="${downloadUrl}" class="action-btn" download="bird-${v.id}.mp4">
+                                    📥 Download
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -520,23 +955,198 @@ export default {
               }).join('')}
         </div>
     </div>
+
+    <div class="toast" id="toast"></div>
+
     <script>
-        // Lazy load videos when they come into viewport
+        // Enhanced video player functionality
+        const videos = document.querySelectorAll('.video-player');
+        const loadingStates = new Map();
+        const retryAttempts = new Map();
+
+        // Intersection Observer for lazy loading
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const video = entry.target;
+                    // Check if video hasn't been loaded yet
                     if (video.dataset.src && !video.src) {
-                        video.src = video.dataset.src;
-                        video.load();
+                        loadVideo(video);
+                        observer.unobserve(video); // Stop observing once loaded
                     }
                 }
             });
-        }, { rootMargin: '50px' });
-
-        document.querySelectorAll('video').forEach(video => {
-            observer.observe(video);
+        }, {
+            rootMargin: '100px',
+            threshold: 0.1
         });
+
+        // Initialize observers
+        videos.forEach(video => {
+            observer.observe(video);
+
+            // Add event listeners
+            video.addEventListener('loadstart', () => handleLoadStart(video));
+            video.addEventListener('loadeddata', () => handleLoadedData(video));
+            video.addEventListener('canplay', () => handleLoadedData(video));
+            video.addEventListener('canplaythrough', () => handleLoadedData(video));
+            video.addEventListener('error', () => handleError(video));
+            video.addEventListener('loadedmetadata', () => updateDuration(video));
+
+            // Volume memory
+            video.volume = localStorage.getItem('videoVolume') || 0.7;
+            video.addEventListener('volumechange', () => {
+                localStorage.setItem('videoVolume', video.volume);
+            });
+        });
+
+        function loadVideo(video) {
+            const container = video.closest('.video-container');
+            const loading = container.querySelector('.video-loading');
+
+            console.log('Loading video:', video.dataset.src);
+            if (loading) {
+                loading.classList.add('active');
+            }
+
+            // Set src directly on video element
+            video.src = video.dataset.src;
+            video.load();
+            console.log('Set video.src and called load()');
+        }
+
+        function handleLoadStart(video) {
+            const container = video.closest('.video-container');
+            const loading = container.querySelector('.video-loading');
+            const error = container.querySelector('.video-error');
+
+            loading.classList.add('active');
+            error.classList.remove('active');
+        }
+
+        function handleLoadedData(video) {
+            const container = video.closest('.video-container');
+            const loading = container.querySelector('.video-loading');
+
+            if (loading) {
+                loading.classList.remove('active');
+                console.log('Video loaded, hiding spinner');
+            }
+            retryAttempts.delete(video.dataset.src);
+        }
+
+        function handleError(video) {
+            const container = video.closest('.video-container');
+            const loading = container.querySelector('.video-loading');
+            const error = container.querySelector('.video-error');
+
+            loading.classList.remove('active');
+
+            // Auto-retry once
+            const attempts = retryAttempts.get(video.dataset.src) || 0;
+            if (attempts < 1) {
+                retryAttempts.set(video.dataset.src, attempts + 1);
+                setTimeout(() => {
+                    video.load();
+                }, 2000);
+            } else {
+                error.classList.add('active');
+            }
+        }
+
+        function updateDuration(video) {
+            const card = video.closest('.video-card');
+            const durationSpan = card.querySelector('.video-duration');
+
+            if (durationSpan && video.duration) {
+                const minutes = Math.floor(video.duration / 60);
+                const seconds = Math.floor(video.duration % 60);
+                durationSpan.textContent = \`\${minutes}:\${seconds.toString().padStart(2, '0')}\`;
+            }
+        }
+
+        function retryVideo(videoId) {
+            const card = document.querySelector(\`.video-card[data-video-id="\${videoId}"]\`);
+            const video = card.querySelector('.video-player');
+            const error = card.querySelector('.video-error');
+
+            error.classList.remove('active');
+            video.load();
+        }
+
+        function shareVideo(videoId) {
+            const url = \`\${window.location.origin}/api/videos/\${videoId}/stream\`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: '🐦 Cute Bird Video',
+                    text: 'Check out this adorable AI-generated bird video!',
+                    url: url
+                }).catch(() => {
+                    copyToClipboard(url);
+                });
+            } else {
+                copyToClipboard(url);
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Link copied to clipboard! 📋');
+            }).catch(() => {
+                showToast('Failed to copy link');
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            const activeVideo = document.querySelector('video:hover');
+            if (!activeVideo) return;
+
+            switch(e.key) {
+                case ' ':
+                    e.preventDefault();
+                    activeVideo.paused ? activeVideo.play() : activeVideo.pause();
+                    break;
+                case 'ArrowRight':
+                    activeVideo.currentTime += 5;
+                    break;
+                case 'ArrowLeft':
+                    activeVideo.currentTime -= 5;
+                    break;
+                case 'ArrowUp':
+                    activeVideo.volume = Math.min(1, activeVideo.volume + 0.1);
+                    break;
+                case 'ArrowDown':
+                    activeVideo.volume = Math.max(0, activeVideo.volume - 0.1);
+                    break;
+                case 'f':
+                    if (activeVideo.requestFullscreen) {
+                        activeVideo.requestFullscreen();
+                    }
+                    break;
+            }
+        });
+
+        // Performance monitoring
+        if ('connection' in navigator) {
+            const connection = navigator.connection;
+            if (connection.saveData || connection.effectiveType === 'slow-2g') {
+                videos.forEach(video => {
+                    video.preload = 'none';
+                });
+            }
+        }
     </script>
 </body>
 </html>`;
@@ -631,41 +1241,62 @@ export default {
               return new Response('Video not available for streaming', { status: 404 });
             }
 
-            // Stream from R2
-            console.log('[Stream] Looking for R2 key:', video.r2_key);
-            const object = await env.VIDEO_STORAGE.get(video.r2_key as string);
-
-            if (!object) {
-              console.error('[Stream] R2 object not found for key:', video.r2_key);
-              return new Response('Video file not found', { status: 404 });
-            }
-            console.log('[Stream] Found R2 object, size:', object.size);
-
-            const headers = new Headers();
-            object.httpMetadata?.contentType && headers.set('Content-Type', object.httpMetadata.contentType);
-            headers.set('Content-Length', object.size.toString());
-            headers.set('Cache-Control', 'private, max-age=3600');
-
             // Support range requests for video streaming
             const range = request.headers.get('Range');
+            let object;
+
             if (range) {
               const parts = range.replace(/bytes=/, '').split('-');
               const start = parseInt(parts[0], 10);
-              const end = parts[1] ? parseInt(parts[1], 10) : object.size - 1;
+              const end = parts[1] ? parseInt(parts[1], 10) : undefined;
 
-              headers.set('Content-Range', `bytes ${start}-${end}/${object.size}`);
+              console.log('[Stream] Range request:', start, '-', end || 'end');
+
+              // Use R2's range option to fetch only the requested bytes
+              object = await env.VIDEO_STORAGE.get(video.r2_key as string, {
+                range: { offset: start, length: end ? end - start + 1 : undefined }
+              });
+
+              if (!object) {
+                console.error('[Stream] R2 object not found for key:', video.r2_key);
+                return new Response('Video file not found', { status: 404 });
+              }
+
+              const totalSize = object.range ? object.range.offset + object.size : object.size;
+              const actualEnd = end || totalSize - 1;
+
+              const headers = new Headers();
+              headers.set('Content-Type', 'video/mp4');
+              headers.set('Content-Range', `bytes ${start}-${actualEnd}/${totalSize}`);
               headers.set('Accept-Ranges', 'bytes');
-              headers.set('Content-Length', String(end - start + 1));
+              headers.set('Content-Length', String(actualEnd - start + 1));
+              headers.set('Cache-Control', 'private, max-age=3600');
 
               return new Response(object.body, {
                 status: 206,
                 headers,
               });
-            }
+            } else {
+              // Full file request
+              console.log('[Stream] Looking for R2 key:', video.r2_key);
+              object = await env.VIDEO_STORAGE.get(video.r2_key as string);
 
-            return new Response(object.body, {
-              headers,
-            });
+              if (!object) {
+                console.error('[Stream] R2 object not found for key:', video.r2_key);
+                return new Response('Video file not found', { status: 404 });
+              }
+              console.log('[Stream] Found R2 object, size:', object.size);
+
+              const headers = new Headers();
+              headers.set('Content-Type', 'video/mp4');
+              headers.set('Content-Length', object.size.toString());
+              headers.set('Cache-Control', 'private, max-age=3600');
+              headers.set('Accept-Ranges', 'bytes');
+
+              return new Response(object.body, {
+                headers,
+              });
+            }
           }
 
           if (url.pathname.startsWith('/videos/')) {

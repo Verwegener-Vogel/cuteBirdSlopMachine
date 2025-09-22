@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .video-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        video {
+            width: 100%;
+            height: auto;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .logs {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px;
+        }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <h1>Video Streaming Test</h1>
+
+        <video id="testVideo" controls preload="none">
+            Your browser does not support the video tag.
+        </video>
+
+        <div class="status" id="status">Status: Initializing...</div>
+
+        <button onclick="loadVideo()">Load Video</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+
+        <div class="logs" id="logs"></div>
+    </div>
+
+    <script>
+        const video = document.getElementById('testVideo');
+        const status = document.getElementById('status');
+        const logs = document.getElementById('logs');
+        const videoUrl = '/api/videos/034956ca-cb3b-4b53-9062-d3370b3e84d5/stream';
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logs.appendChild(entry);
+            logs.scrollTop = logs.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(text, color = 'black') {
+            status.textContent = `Status: ${text}`;
+            status.style.color = color;
+        }
+
+        function clearLogs() {
+            logs.innerHTML = '';
+            log('Logs cleared', 'info');
+        }
+
+        // Event listeners
+        video.addEventListener('loadstart', () => {
+            log('Event: loadstart - Loading started', 'info');
+            updateStatus('Loading...', 'orange');
+        });
+
+        video.addEventListener('loadedmetadata', () => {
+            log(`Event: loadedmetadata - Duration: ${video.duration}s`, 'info');
+            updateStatus('Metadata loaded', 'blue');
+        });
+
+        video.addEventListener('loadeddata', () => {
+            log('Event: loadeddata - First frame loaded', 'success');
+            updateStatus('Ready to play', 'green');
+        });
+
+        video.addEventListener('canplay', () => {
+            log('Event: canplay - Can start playing', 'success');
+            updateStatus('Can play', 'green');
+        });
+
+        video.addEventListener('canplaythrough', () => {
+            log('Event: canplaythrough - Can play through without buffering', 'success');
+            updateStatus('Ready (buffered)', 'green');
+        });
+
+        video.addEventListener('playing', () => {
+            log('Event: playing - Playback started', 'success');
+            updateStatus('Playing', 'green');
+        });
+
+        video.addEventListener('pause', () => {
+            log('Event: pause - Playback paused', 'info');
+            updateStatus('Paused', 'gray');
+        });
+
+        video.addEventListener('error', (e) => {
+            const error = video.error;
+            let errorMsg = 'Unknown error';
+            if (error) {
+                switch(error.code) {
+                    case 1: errorMsg = 'MEDIA_ERR_ABORTED'; break;
+                    case 2: errorMsg = 'MEDIA_ERR_NETWORK'; break;
+                    case 3: errorMsg = 'MEDIA_ERR_DECODE'; break;
+                    case 4: errorMsg = 'MEDIA_ERR_SRC_NOT_SUPPORTED'; break;
+                }
+                errorMsg += ` - ${error.message || 'No message'}`;
+            }
+            log(`Event: error - ${errorMsg}`, 'error');
+            updateStatus(`Error: ${errorMsg}`, 'red');
+        });
+
+        video.addEventListener('waiting', () => {
+            log('Event: waiting - Buffering', 'info');
+            updateStatus('Buffering...', 'orange');
+        });
+
+        video.addEventListener('stalled', () => {
+            log('Event: stalled - Download stalled', 'error');
+            updateStatus('Stalled', 'red');
+        });
+
+        function loadVideo() {
+            log('Loading video from: ' + videoUrl, 'info');
+
+            // Clear any existing source
+            while (video.firstChild) {
+                video.removeChild(video.firstChild);
+            }
+
+            // Create new source element
+            const source = document.createElement('source');
+            source.src = videoUrl;
+            source.type = 'video/mp4';
+            video.appendChild(source);
+
+            // Load the video
+            video.load();
+            log('Called video.load()', 'info');
+        }
+
+        // Test direct fetch
+        async function testDirectFetch() {
+            log('Testing direct fetch to video URL...', 'info');
+            try {
+                const response = await fetch(videoUrl, { method: 'HEAD' });
+                if (response.ok) {
+                    log(`Direct fetch successful: ${response.status} ${response.statusText}`, 'success');
+                    log(`Content-Type: ${response.headers.get('Content-Type')}`, 'info');
+                    log(`Content-Length: ${response.headers.get('Content-Length')} bytes`, 'info');
+                } else {
+                    log(`Direct fetch failed: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log(`Direct fetch error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        log('Page loaded, ready to test', 'success');
+        testDirectFetch();
+    </script>
+</body>
+</html>
