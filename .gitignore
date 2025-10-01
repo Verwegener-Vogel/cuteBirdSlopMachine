@@ -7,3 +7,10 @@ dist/
 *.log
 .DS_Store
 wrangler.toml
+
+# Screenshots and images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
