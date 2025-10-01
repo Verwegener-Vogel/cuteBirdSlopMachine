@@ -338,7 +338,7 @@ export default {
             duration: `${v.duration}s`,
             urls: {
               // Stream from R2 if available, otherwise not available
-              stream: v.r2_key ? `/api/videos/${v.id}/stream` : null,
+              stream: v.r2_key ? `/videos/${v.id}/stream` : null,
               // Secure download link with token (only if in R2)
               download: null as string | null, // Will be populated with token if available
               // Fallback URL for legacy data
@@ -354,7 +354,7 @@ export default {
           for (const video of formattedVideos) {
             if (video.id && video.urls.stream) {
               const token = await JWT.createToken(video.id, 'download', env.WORKER_API_KEY, 15);
-              video.urls.download = `/api/videos/${video.id}/download?token=${token}`;
+              video.urls.download = `/videos/${video.id}/download?token=${token}`;
             }
           }
 
@@ -406,7 +406,7 @@ export default {
         const video = document.getElementById('testVideo');
         const status = document.getElementById('status');
         const logDiv = document.getElementById('log');
-        const videoUrl = '/api/videos/034956ca-cb3b-4b53-9062-d3370b3e84d5/stream';
+        const videoUrl = '/videos/034956ca-cb3b-4b53-9062-d3370b3e84d5/stream';
 
         function log(msg) {
             logDiv.innerHTML += msg + '<br>';
@@ -467,8 +467,10 @@ export default {
             headers: { 'Content-Type': 'text/html' }
           });
 
+        case '/':
         case '/videos.html':
-          // HTML video gallery with embedded players
+          // Main UI with video gallery and prompt management
+          // Fetch videos and prompts for the UI
           const htmlVideos = await env.DB
             .prepare(`
               SELECT
@@ -476,6 +478,7 @@ export default {
                 v.status,
                 v.video_url,
                 v.r2_key,
+                v.prompt_id,
                 p.prompt,
                 p.cuteness_score
               FROM videos v
@@ -486,13 +489,34 @@ export default {
             `)
             .all();
 
-          // Generate HTML with enhanced video players
+          const availablePrompts = await env.DB
+            .prepare(`
+              SELECT
+                p.id,
+                p.prompt,
+                p.cuteness_score,
+                p.alignment_score,
+                p.visual_appeal_score,
+                p.uniqueness_score,
+                p.species,
+                p.tags,
+                p.created_at,
+                COUNT(CASE WHEN v.r2_key IS NOT NULL AND v.r2_key != 'null' THEN v.id END) as video_count
+              FROM prompts p
+              LEFT JOIN videos v ON p.id = v.prompt_id
+              GROUP BY p.id
+              ORDER BY p.created_at DESC
+              LIMIT 100
+            `)
+            .all();
+
+          // Generate HTML with full UI including prompt management
           const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐦 Cute Bird Slop Machine - Video Gallery</title>
+    <title>🐦 Cute Bird Slop Machine</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -535,6 +559,46 @@ export default {
             color: rgba(255,255,255,0.9);
             font-size: 1.1em;
             margin-bottom: 20px;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .tab-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
         }
 
         /* Stats Bar */
@@ -784,6 +848,136 @@ export default {
             background: linear-gradient(45deg, #56ab2f 0%, #a8e063 100%);
         }
 
+        /* Prompts Section */
+        .prompts-controls {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .generate-btn {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(240, 147, 251, 0.3);
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(240, 147, 251, 0.5);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .prompts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+
+        .prompt-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .prompt-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .prompt-text {
+            font-size: 15px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .prompt-scores {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .score-value {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .prompt-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .prompt-tags {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .generate-video-btn {
+            background: var(--download-gradient);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .generate-video-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .generate-video-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .generate-video-btn.video-created {
+            background: linear-gradient(45deg, #56ab2f 0%, #a8e063 100%);
+        }
+
+        .generate-video-btn.video-created:hover {
+            box-shadow: 0 5px 15px rgba(86, 171, 47, 0.4);
+        }
+
         /* Loading Animation */
         .loading {
             text-align: center;
@@ -894,8 +1088,8 @@ export default {
                     Videos Available
                 </div>
                 <div class="stat">
-                    <strong>${htmlVideos.results.filter((v: any) => v.cuteness_score && v.cuteness_score >= 8).length}</strong>
-                    Ultra Cute (8+)
+                    <strong>${availablePrompts.results.length}</strong>
+                    Prompts Created
                 </div>
                 <div class="stat">
                     <strong>${(htmlVideos.results.reduce((acc: number, v: any) => acc + (v.cuteness_score || 0), 0) / Math.max(htmlVideos.results.length, 1)).toFixed(1)}</strong>
@@ -904,12 +1098,20 @@ export default {
             </div>
         </div>
 
-        <div class="video-grid">
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-button active" onclick="switchTab('videos')">🎬 Videos</button>
+            <button class="tab-button" onclick="switchTab('prompts')">💡 Prompts</button>
+        </div>
+
+        <!-- Videos Tab -->
+        <div id="videos-tab" class="tab-content active">
+            <div class="video-grid">
             ${htmlVideos.results.length === 0 ?
               '<div class="no-videos">🎬 No videos available yet<br><br>Start generating some adorable Baltic bird content!</div>' :
               htmlVideos.results.map((v: any, index: number) => {
-                const videoUrl = `/api/videos/${v.id}/stream`;
-                const downloadUrl = `/api/videos/${v.id}/download`;
+                const videoUrl = `/videos/${v.id}/stream`;
+                const downloadUrl = `/videos/${v.id}/download`;
                 const animationDelay = index * 0.1;
                 return `
                 <div class="video-card" style="animation-delay: ${animationDelay}s" data-video-id="${v.id}">
@@ -953,6 +1155,63 @@ export default {
                 </div>
                 `;
               }).join('')}
+            </div>
+        </div>
+
+        <!-- Prompts Tab -->
+        <div id="prompts-tab" class="tab-content">
+            <div class="prompts-controls">
+                <button class="generate-btn" onclick="generatePrompts()">
+                    ✨ Generate New Prompts
+                </button>
+            </div>
+
+            <div class="prompts-grid">
+                ${availablePrompts.results.length === 0 ?
+                  '<div class="no-videos">💡 No prompts available yet<br><br>Click the button above to generate some!</div>' :
+                  availablePrompts.results.map((p: any, index: number) => {
+                    const promptId = p.id;
+                    const hasVideo = p.video_count > 0;
+                    const tagsArray = typeof p.tags === 'string' ? JSON.parse(p.tags) : p.tags || [];
+                    const speciesArray = typeof p.species === 'string' ? JSON.parse(p.species) : p.species || [];
+                    return `
+                    <div class="prompt-card" data-prompt-id="${promptId}">
+                        <div class="prompt-text">${p.prompt}</div>
+                        <div class="prompt-scores">
+                            <div class="score-item">
+                                <span>Cuteness:</span>
+                                <span class="score-value">${p.cuteness_score?.toFixed(1) || 'N/A'}</span>
+                            </div>
+                            <div class="score-item">
+                                <span>Alignment:</span>
+                                <span class="score-value">${p.alignment_score?.toFixed(1) || 'N/A'}</span>
+                            </div>
+                            <div class="score-item">
+                                <span>Visual:</span>
+                                <span class="score-value">${p.visual_appeal_score?.toFixed(1) || 'N/A'}</span>
+                            </div>
+                            <div class="score-item">
+                                <span>Unique:</span>
+                                <span class="score-value">${p.uniqueness_score?.toFixed(1) || 'N/A'}</span>
+                            </div>
+                        </div>
+                        <div class="prompt-meta">
+                            <div class="prompt-tags">
+                                ${speciesArray.map((s: string) => `<span class="tag">🐦 ${s}</span>`).join('')}
+                                ${tagsArray.slice(0, 2).map((t: string) => `<span class="tag">${t}</span>`).join('')}
+                            </div>
+                            <button class="generate-video-btn ${hasVideo ? 'video-created' : ''}"
+                                    data-prompt-id="${promptId}"
+                                    data-prompt-text="${p.prompt.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
+                                    data-has-video="${hasVideo}"
+                                    onclick="handleVideoButtonClick(this)">
+                                ${hasVideo ? '▶️ Play Video' : '🎬 Generate Video'}
+                            </button>
+                        </div>
+                    </div>
+                    `;
+                  }).join('')}
+            </div>
         </div>
     </div>
 
@@ -1061,12 +1320,12 @@ export default {
             if (durationSpan && video.duration) {
                 const minutes = Math.floor(video.duration / 60);
                 const seconds = Math.floor(video.duration % 60);
-                durationSpan.textContent = \`\${minutes}:\${seconds.toString().padStart(2, '0')}\`;
+                durationSpan.textContent = minutes + ':' + seconds.toString().padStart(2, '0');
             }
         }
 
         function retryVideo(videoId) {
-            const card = document.querySelector(\`.video-card[data-video-id="\${videoId}"]\`);
+            const card = document.querySelector('.video-card[data-video-id="' + videoId + '"]');
             const video = card.querySelector('.video-player');
             const error = card.querySelector('.video-error');
 
@@ -1075,7 +1334,7 @@ export default {
         }
 
         function shareVideo(videoId) {
-            const url = \`\${window.location.origin}/api/videos/\${videoId}/stream\`;
+            const url = window.location.origin + '/videos/' + videoId + '/stream';
 
             if (navigator.share) {
                 navigator.share({
@@ -1147,6 +1406,255 @@ export default {
                 });
             }
         }
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Pause all videos when switching away from videos tab
+            if (tabName !== 'videos') {
+                document.querySelectorAll('.video-player').forEach(video => {
+                    if (!video.paused) {
+                        video.pause();
+                    }
+                });
+            }
+
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Add active class to selected tab
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        // Handle video button click (unified handler)
+        function handleVideoButtonClick(button) {
+            const promptId = button.dataset.promptId;
+            const promptText = button.dataset.promptText;
+            const hasVideo = button.dataset.hasVideo === 'true';
+
+            if (hasVideo) {
+                playExistingVideo(promptId);
+            } else {
+                generateVideoFromPrompt(promptId, promptText);
+            }
+        }
+
+        // Generate new prompts
+        async function generatePrompts() {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = '⏳ Generating...';
+
+            try {
+                const response = await fetch('/generate-prompts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': 'test-worker-key' // For development
+                    },
+                    body: JSON.stringify({})
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showToast('✅ Generated ' + result.promptsGenerated + ' new prompts!');
+                    // Wait longer and use a gentler reload approach
+                    setTimeout(() => {
+                        try {
+                            window.location.href = window.location.href;
+                        } catch (e) {
+                            // Fallback if navigation fails
+                            console.log('Reload will happen on next user interaction');
+                        }
+                    }, 3000);
+                } else {
+                    const error = await response.text();
+                    showToast('❌ Failed: ' + error);
+                    button.disabled = false;
+                    button.textContent = '✨ Generate New Prompts';
+                }
+            } catch (error) {
+                showToast('❌ Error: ' + error.message);
+                button.disabled = false;
+                button.textContent = '✨ Generate New Prompts';
+            }
+        }
+
+        // Generate video from prompt
+        async function generateVideoFromPrompt(promptId, promptText) {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = '⏳ Generating...';
+
+            try {
+                const response = await fetch('/generate-video', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': 'test-worker-key' // For development
+                    },
+                    body: JSON.stringify({
+                        promptId: promptId,
+                        prompt: promptText,
+                        style: 'realistic',
+                        duration: 15,
+                        includeSound: true
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showToast('🎬 Video generation started! ID: ' + result.videoId);
+                    button.textContent = '✓ Video Queued';
+
+                    // Poll for completion
+                    setTimeout(() => {
+                        checkVideoStatus(result.videoId);
+                    }, 5000);
+                } else {
+                    const error = await response.text();
+                    showToast('❌ Failed: ' + error);
+                    button.disabled = false;
+                    button.textContent = '🎬 Generate Video';
+                }
+            } catch (error) {
+                showToast('❌ Error: ' + error.message);
+                button.disabled = false;
+                button.textContent = '🎬 Generate Video';
+            }
+        }
+
+        // Check video generation status
+        async function checkVideoStatus(videoId) {
+            try {
+                const response = await fetch('/videos/' + videoId);
+                const video = await response.json();
+
+                if (video.status === 'downloaded') {
+                    showToast('🎉 Video ready to play!');
+                    // Find the button for this video's prompt and update it
+                    const promptId = video.prompt_id;
+                    const button = document.querySelector('[data-prompt-id="' + promptId + '"] button');
+                    if (button) {
+                        button.textContent = '▶️ Play Video';
+                        button.className = 'generate-video-btn video-created';
+                        button.dataset.hasVideo = 'true';
+                        button.disabled = false;
+                    }
+                } else if (video.status === 'failed') {
+                    showToast('❌ Video generation failed');
+                    // Reset button to allow retry
+                    const promptId = video.prompt_id;
+                    const button = document.querySelector('[data-prompt-id="' + promptId + '"] button');
+                    if (button) {
+                        button.textContent = '🎬 Generate Video';
+                        button.disabled = false;
+                    }
+                } else {
+                    // Still processing (pending, queued, completed but not downloaded yet)
+                    const statusText = video.status === 'completed' ? 'downloading' : video.status;
+                    console.log('Video ' + videoId + ' status: ' + statusText);
+
+                    // Check again in 10 seconds
+                    setTimeout(() => {
+                        checkVideoStatus(videoId);
+                    }, 10000);
+                }
+            } catch (error) {
+                console.error('Status check failed:', error);
+                // Retry in 15 seconds on error
+                setTimeout(() => {
+                    checkVideoStatus(videoId);
+                }, 15000);
+            }
+        }
+
+        // Play existing video for a prompt
+        async function playExistingVideo(promptId) {
+            try {
+                // First, get the prompt text from the current prompts tab using data attribute
+                const currentPromptContainer = document.querySelector('[data-prompt-id="' + promptId + '"]');
+                const currentPromptText = currentPromptContainer?.querySelector('.prompt-text')?.textContent?.trim();
+
+                console.log('Looking for video with prompt ID:', promptId, 'Text:', currentPromptText);
+
+                // Switch to videos tab first
+                switchTab('videos');
+
+                // Wait for tab switch to complete
+                setTimeout(() => {
+                    // Look for a video container that matches this prompt's text
+                    const videoContainers = document.querySelectorAll('.video-card');
+                    let targetVideo = null;
+                    let bestMatch = null;
+
+                    for (const container of videoContainers) {
+                        const promptElement = container.querySelector('.video-prompt');
+                        const videoPlayer = container.querySelector('.video-player');
+
+                        console.log('Checking container:', {
+                            hasPromptElement: !!promptElement,
+                            hasVideoPlayer: !!videoPlayer,
+                            videoId: videoPlayer?.dataset?.videoId,
+                            promptText: promptElement?.textContent?.trim()
+                        });
+
+                        if (promptElement && videoPlayer) {
+                            const videoPromptText = promptElement.textContent?.trim();
+
+                            // Try to match by prompt text if we have it
+                            if (currentPromptText && videoPromptText === currentPromptText) {
+                                console.log('Found exact prompt match:', videoPromptText);
+                                targetVideo = videoPlayer;
+                                break;
+                            }
+
+                            // Fallback: use any video that has a valid player
+                            if (!bestMatch && videoPlayer.dataset && videoPlayer.dataset.videoId) {
+                                console.log('Setting as fallback video:', videoPlayer.dataset.videoId);
+                                bestMatch = videoPlayer;
+                            }
+                        }
+                    }
+
+                    // Use best match if no exact match found
+                    if (!targetVideo && bestMatch) {
+                        console.log('Using fallback video');
+                        targetVideo = bestMatch;
+                    }
+
+                    if (targetVideo) {
+                        // Scroll to the video
+                        targetVideo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        // Load and play the video
+                        if (!targetVideo.src || targetVideo.src === '') {
+                            loadVideo(targetVideo);
+                        }
+
+                        // Wait a bit for the video to load, then try to play
+                        setTimeout(() => {
+                            targetVideo.play().catch(() => {
+                                console.log('Autoplay blocked - user will need to click play');
+                            });
+                        }, 1000);
+
+                        showToast('Displaying cuteness');
+                    } else {
+                        console.log('No video containers found. Available containers:', videoContainers.length);
+                        showToast('❌ No videos available in gallery');
+                    }
+                }, 500);
+            } catch (error) {
+                console.error('Failed to find video:', error);
+                showToast('❌ Error finding video');
+            }
+        }
     </script>
 </body>
 </html>`;
@@ -1161,8 +1669,8 @@ export default {
 
         default:
           // Check for video download endpoint
-          if (url.pathname.match(/^\/api\/videos\/[^\/]+\/download$/)) {
-            const videoId = url.pathname.split('/')[3];
+          if (url.pathname.match(/^\/videos\/[^\/]+\/download$/)) {
+            const videoId = url.pathname.split('/')[2];
             const token = url.searchParams.get('token');
 
             // Validate token if provided
@@ -1210,9 +1718,9 @@ export default {
           }
 
           // Check for video streaming endpoint
-          if (url.pathname.match(/^\/api\/videos\/[^\/]+\/stream$/)) {
+          if (url.pathname.match(/^\/videos\/[^\/]+\/stream$/)) {
             // Extract video ID from path
-            const videoId = url.pathname.split('/')[3];
+            const videoId = url.pathname.split('/')[2];
 
             // For local development, skip auth. In production, require auth for sensitive operations
             if (env.ENVIRONMENT === 'production') {
@@ -1337,27 +1845,31 @@ export default {
   },
 
   async queue(batch: MessageBatch, env: Env): Promise<void> {
-    // Initialize DI container for queue processing
-    ServiceFactory.initialize(env);
-    const geminiService = ServiceFactory.createGeminiService(env);
-    const dbService = ServiceFactory.createDatabaseService(env);
+    // Initialize video poller service for queue processing
+    const poller = new VideoPollerService({
+      GOOGLE_AI_API_KEY: env.GOOGLE_AI_API_KEY,
+      DB: env.DB,
+      VIDEO_STORAGE: env.VIDEO_STORAGE,
+    });
 
     for (const message of batch.messages) {
-      const { id, promptId, prompt } = message.body as any;
+      const { id, promptId, prompt, operationName } = message.body as any;
 
       try {
-        const { videoUrl, operationName } = await geminiService.generateVideo(prompt);
+        console.log(`Queue processing video ${id} with operation ${operationName}`);
 
-        await env.DB
-          .prepare(
-            'UPDATE videos SET status = ?, google_url = ?, operation_name = ? WHERE id = ?'
-          )
-          .bind('completed', videoUrl, operationName || null, id)
-          .run();
+        // Poll for the specific video completion and download to R2
+        const result = await poller.pollSpecificVideo(id, operationName);
 
-        message.ack();
+        if (result) {
+          console.log(`Video ${id} processed successfully via queue`);
+          message.ack();
+        } else {
+          console.log(`Video ${id} not yet ready, retrying`);
+          message.retry();
+        }
       } catch (error) {
-        console.error(`Failed to generate video ${id}:`, error);
+        console.error(`Failed to process video ${id} in queue:`, error);
 
         await env.DB
           .prepare(

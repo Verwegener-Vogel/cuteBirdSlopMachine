@@ -340,3 +340,4 @@ For updates:
 - always update the openapi specs when adding, changing or removing endpoints
 - the local server should always respond on port 8787. never launch another instance but kill the old one.
 - don't skip fixing root causes by explaining me you are not responsible. fix all bugs on the way even if they are not directly related to our current issue. don't skimp on code quality and cleanliness by adding mocks or commenting out code but fix it to the root cause.
+- never use any /api/ or other text in the routing. just direct endpoints on /[endpointhere]

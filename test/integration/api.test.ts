@@ -262,11 +262,12 @@ describe('Worker API Integration Tests', () => {
       expect(text).toBe('Not found');
     });
 
-    it('should return 404 for root path', async () => {
+    it('should return HTML UI for root path', async () => {
       const request = new Request('http://localhost/');
       const response = await worker.fetch(request, env);
 
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toContain('text/html');
     });
   });
 

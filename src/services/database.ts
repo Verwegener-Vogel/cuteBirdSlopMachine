@@ -38,8 +38,9 @@ export class DatabaseService {
       .prepare(
         `INSERT INTO prompts (
           id, prompt, created_at, cuteness_score, alignment_score,
-          visual_appeal_score, uniqueness_score, style, season, prompt_hash, usage_count
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
+          visual_appeal_score, uniqueness_score, style, season, prompt_hash, usage_count,
+          tags, species
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`
       )
       .bind(
         id,
@@ -51,7 +52,9 @@ export class DatabaseService {
         prompt.uniquenessScore,
         prompt.style,
         prompt.season || null,
-        promptHash
+        promptHash,
+        JSON.stringify(prompt.tags),
+        JSON.stringify(prompt.species)
       )
       .run();
 

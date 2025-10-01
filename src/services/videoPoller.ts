@@ -70,6 +70,49 @@ export class VideoPollerService {
     return processedCount;
   }
 
+  async pollSpecificVideo(videoId: string, operationName: string): Promise<boolean> {
+    ServiceFactory.initialize(this.env);
+    const operationPoller = ServiceFactory.getContainer().get('operationPoller');
+
+    try {
+      console.log(`Polling specific video ${videoId} with operation ${operationName}`);
+
+      const status = await operationPoller.pollOperation(operationName);
+
+      if (status.done) {
+        if (status.error) {
+          // Update as failed
+          await this.env.DB
+            .prepare('UPDATE videos SET status = ?, error = ? WHERE id = ?')
+            .bind('failed', JSON.stringify(status.error), videoId)
+            .run();
+          return true; // Processed (failed, but processed)
+        } else {
+          // Extract the Google video URL
+          const googleUrl = this.extractVideoUrl(status.response);
+
+          if (googleUrl) {
+            // Update with Google URL first
+            await this.env.DB
+              .prepare('UPDATE videos SET status = ?, google_url = ? WHERE id = ?')
+              .bind('completed', googleUrl, videoId)
+              .run();
+
+            // Download to R2 storage
+            await this.downloadToR2(videoId, googleUrl);
+            return true; // Successfully processed
+          }
+        }
+      }
+
+      // Not done yet, will retry
+      return false;
+    } catch (error) {
+      console.error(`Failed to poll specific video ${videoId}:`, error);
+      throw error; // Let queue handler decide to retry or fail
+    }
+  }
+
 
   private extractVideoUrl(response: any): string | null {
     return response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri ||
@@ -130,7 +173,7 @@ export class VideoPollerService {
       });
 
       // Update database with R2 key and mark as downloaded
-      const videoUrl = `/api/videos/${videoId}/stream`;
+      const videoUrl = `/videos/${videoId}/stream`;
       await this.env.DB
         .prepare(`
           UPDATE videos
