@@ -3,11 +3,11 @@ import { requireAuth } from './middleware/auth';
 import { handleCors } from './middleware/cors';
 import { handleError } from './middleware/errorHandler';
 import { route } from './router';
-import { Env } from './config/env';
+import type { Env } from './config/env';
 import { handleQueueBatch } from './handlers/queue';
 import { handleScheduled } from './handlers/scheduled';
 
-export { Env };
+export type { Env };
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {

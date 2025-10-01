@@ -1,0 +1,83 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - heading "🐦 Cute Bird Slop Machine" [level=1] [ref=e4]
+    - paragraph [ref=e5]: Adorable AI-generated Baltic coastal bird content
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - strong [ref=e8]: "5"
+      - text: Videos Available
+    - generic [ref=e9]:
+      - strong [ref=e10]: "30"
+      - text: Prompts Created
+    - generic [ref=e11]:
+      - strong [ref=e12]: "5.2"
+      - text: Avg Cuteness
+  - generic [ref=e13]:
+    - button "🎬 Videos" [ref=e14] [cursor=pointer]
+    - button "💡 Prompts" [ref=e15] [cursor=pointer]
+  - generic [ref=e17]:
+    - generic [ref=e18]:
+      - generic [ref=e21]:
+        - paragraph [ref=e22]: ⚠️ Failed to load video
+        - button "Retry" [ref=e23] [cursor=pointer]
+      - generic [ref=e24]:
+        - paragraph [ref=e25]: No prompt available
+        - generic [ref=e27]: Downloaded
+        - generic [ref=e28]:
+          - link "⬇️ Download" [ref=e29] [cursor=pointer]:
+            - /url: /videos/f7329f83-2378-451e-a8c7-b2c8439b391e/download
+          - button "🔗 Share" [ref=e30] [cursor=pointer]
+    - generic [ref=e31]:
+      - generic [ref=e34]:
+        - paragraph [ref=e35]: ⚠️ Failed to load video
+        - button "Retry" [ref=e36] [cursor=pointer]
+      - generic [ref=e37]:
+        - paragraph [ref=e38]: A classic 2D cartoon of a mischievous Common Gull stealing a single french fry and bringing it to its fluffy chicks.
+        - generic [ref=e39]:
+          - generic [ref=e40]: 😍 7.0/10
+          - generic [ref=e41]: Downloaded
+        - generic [ref=e42]:
+          - link "⬇️ Download" [ref=e43] [cursor=pointer]:
+            - /url: /videos/f6bda515-dece-44d9-8624-c9ed8d55371d/download
+          - button "🔗 Share" [ref=e44] [cursor=pointer]
+    - generic [ref=e45]:
+      - generic [ref=e48]:
+        - paragraph [ref=e49]: ⚠️ Failed to load video
+        - button "Retry" [ref=e50] [cursor=pointer]
+      - generic [ref=e51]:
+        - paragraph [ref=e52]: A colorful animation of baby terns, oystercatchers, and gulls playfully chasing a piece of seaweed on a tidal flat together.
+        - generic [ref=e53]:
+          - generic [ref=e54]: 😍 9.0/10
+          - generic [ref=e55]: Downloaded
+        - generic [ref=e56]:
+          - link "⬇️ Download" [ref=e57] [cursor=pointer]:
+            - /url: /videos/ed4d8de3-8029-4498-8e1f-18c8e5544577/download
+          - button "🔗 Share" [ref=e58] [cursor=pointer]
+    - generic [ref=e59]:
+      - generic [ref=e62]:
+        - paragraph [ref=e63]: ⚠️ Failed to load video
+        - button "Retry" [ref=e64] [cursor=pointer]
+      - generic [ref=e65]:
+        - paragraph [ref=e66]: No prompt available
+        - generic [ref=e68]: Downloaded
+        - generic [ref=e69]:
+          - link "⬇️ Download" [ref=e70] [cursor=pointer]:
+            - /url: /videos/a4fda5a8-bb23-4bef-bc03-86295edb7991/download
+          - button "🔗 Share" [ref=e71] [cursor=pointer]
+    - generic [ref=e72]:
+      - generic [ref=e75]:
+        - paragraph [ref=e76]: ⚠️ Failed to load video
+        - button "Retry" [ref=e77] [cursor=pointer]
+      - generic [ref=e78]:
+        - paragraph [ref=e79]: In a soft, painterly style, a downy grey Mute Swan cygnet snuggles onto its mother's back for a ride.
+        - generic [ref=e80]:
+          - generic [ref=e81]: 😍 10.0/10
+          - generic [ref=e82]: Downloaded
+        - generic [ref=e83]:
+          - link "⬇️ Download" [ref=e84] [cursor=pointer]:
+            - /url: /videos/034956ca-cb3b-4b53-9062-d3370b3e84d5/download
+          - button "🔗 Share" [ref=e85] [cursor=pointer]
+```

@@ -27,6 +27,7 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.9.3",
     "@cloudflare/workers-types": "^4.20250920.0",
+    "@playwright/test": "^1.55.1",
     "@types/node": "^24.5.2",
     "@vitest/ui": "^3.2.4",
     "husky": "^9.1.7",
