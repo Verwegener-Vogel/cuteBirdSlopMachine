@@ -1,0 +1,91 @@
+/**
+ * Test Player Template
+ * Simple video player for debugging playback
+ */
+
+export function testPlayerTemplate(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f0f0f0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        video { width: 100%; height: auto; background: black; }
+        .status { margin: 10px 0; padding: 10px; background: #e0e0e0; border-radius: 5px; }
+        button { margin: 5px; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Video Test</h1>
+        <video id="testVideo" controls></video>
+        <div class="status" id="status">Ready</div>
+        <button onclick="testDirectLoad()">Test Direct Load</button>
+        <button onclick="testLazyLoad()">Test Lazy Load</button>
+        <button onclick="testWithSource()">Test with Source Element</button>
+        <div id="log" style="margin-top: 20px; font-family: monospace; font-size: 12px;"></div>
+    </div>
+    <script>
+        const video = document.getElementById('testVideo');
+        const status = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+        const videoUrl = '/videos/034956ca-cb3b-4b53-9062-d3370b3e84d5/stream';
+
+        function log(msg) {
+            logDiv.innerHTML += msg + '<br>';
+            console.log(msg);
+        }
+
+        // Add all event listeners
+        ['loadstart', 'loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough', 'error', 'stalled'].forEach(event => {
+            video.addEventListener(event, (e) => {
+                log(\`Event: \${event}\`);
+                if (event === 'error' && video.error) {
+                    log(\`Error code: \${video.error.code}, message: \${video.error.message}\`);
+                }
+                if (event === 'canplay' || event === 'canplaythrough') {
+                    status.textContent = 'Video loaded successfully!';
+                    status.style.background = '#90EE90';
+                }
+            });
+        });
+
+        function testDirectLoad() {
+            log('Testing direct src assignment...');
+            video.src = videoUrl;
+            video.load();
+        }
+
+        function testLazyLoad() {
+            log('Testing lazy load...');
+            video.removeAttribute('src');
+            while (video.firstChild) video.removeChild(video.firstChild);
+            setTimeout(() => {
+                video.src = videoUrl;
+                video.load();
+            }, 100);
+        }
+
+        function testWithSource() {
+            log('Testing with source element...');
+            video.removeAttribute('src');
+            while (video.firstChild) video.removeChild(video.firstChild);
+            const source = document.createElement('source');
+            source.src = videoUrl;
+            source.type = 'video/mp4';
+            video.appendChild(source);
+            video.load();
+        }
+
+        // Test fetch
+        fetch(videoUrl, { method: 'HEAD' }).then(r => {
+            log(\`Fetch test: \${r.status} \${r.statusText}\`);
+        }).catch(e => {
+            log(\`Fetch error: \${e.message}\`);
+        });
+    </script>
+</body>
+</html>`;
+}
