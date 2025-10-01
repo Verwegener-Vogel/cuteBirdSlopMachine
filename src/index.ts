@@ -1,6 +1,5 @@
 import { VideoPollerService } from './services/videoPoller';
 import { ServiceFactory } from './services/ServiceFactory';
-import { TemplateLoader } from './templates/loader';
 import { handleHealth } from './handlers/health';
 import { handleGeneratePrompts, handleGetPrompts } from './handlers/prompts';
 import { handleGallery, handleTestPlayer } from './handlers/ui';
@@ -13,6 +12,9 @@ import {
   handleVideoStatus,
   handlePollVideos,
 } from './handlers/videos';
+import { requireAuth } from './middleware/auth';
+import { handleCors } from './middleware/cors';
+import { handleError } from './middleware/errorHandler';
 
 export interface Env {
   GOOGLE_AI_API_KEY: string;
@@ -30,36 +32,18 @@ export default {
 
     // Initialize DI container for this request
     ServiceFactory.initialize(env);
-    const geminiService = ServiceFactory.createGeminiService(env);
-    const dbService = ServiceFactory.createDatabaseService(env);
 
     try {
-      // API Key authentication for sensitive endpoints
-      const requireAuth = ['/generate-prompts', '/generate-video'].includes(url.pathname);
-      if (requireAuth && env.ENVIRONMENT === 'production') {
-        const apiKey = request.headers.get('X-API-Key');
-        if (!apiKey || apiKey !== env.WORKER_API_KEY) {
-          return new Response(
-            JSON.stringify({ error: 'Unauthorized' }),
-            {
-              status: 401,
-              headers: { 'Content-Type': 'application/json' }
-            }
-          );
-        }
+      // Handle CORS preflight requests
+      const corsResponse = handleCors(request);
+      if (corsResponse) {
+        return corsResponse;
       }
 
-      // Handle OPTIONS requests for CORS preflight
-      if (request.method === 'OPTIONS') {
-        return new Response(null, {
-          status: 204,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, X-API-Key, Authorization',
-            'Access-Control-Max-Age': '86400',
-          },
-        });
+      // Check authentication for protected endpoints
+      const authResponse = requireAuth(request, env);
+      if (authResponse) {
+        return authResponse;
       }
 
       switch (url.pathname) {
@@ -113,17 +97,7 @@ export default {
           return new Response('Not found', { status: 404 });
       }
     } catch (error) {
-      console.error('Error:', error);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+      return handleError(error);
     }
   },
 
