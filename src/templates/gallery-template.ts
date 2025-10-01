@@ -44,17 +44,20 @@ export function galleryTemplate(data: GalleryTemplateData): string {
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --card-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            --card-hover-shadow: 0 20px 40px rgba(0,0,0,0.25);
-            --cuteness-gradient: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
-            --download-gradient: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+            --primary-green: #017d1d;
+            --accent-yellow: #ced067;
+            --accent-hover: #b6b84c;
+            --bg-cream: #f2efe8;
+            --footer-dark: #22343a;
+            --text-dark: #3a4145;
+            --text-light: #bbc7cc;
+            --card-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            --card-hover-shadow: 0 8px 20px rgba(1,125,29,0.2);
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: var(--primary-gradient);
-            background-attachment: fixed;
+            background: var(--bg-cream);
             min-height: 100vh;
             padding: 20px;
         }
@@ -72,14 +75,13 @@ export function galleryTemplate(data: GalleryTemplateData): string {
         }
 
         h1 {
-            color: white;
+            color: var(--primary-green);
             font-size: clamp(2rem, 5vw, 3rem);
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
             margin-bottom: 10px;
         }
 
         .subtitle {
-            color: rgba(255,255,255,0.9);
+            color: var(--text-dark);
             font-size: 1.1em;
             margin-bottom: 20px;
         }
@@ -93,26 +95,26 @@ export function galleryTemplate(data: GalleryTemplateData): string {
         }
 
         .tab-button {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: none;
+            background: white;
+            color: var(--text-dark);
+            border: 2px solid var(--text-light);
             padding: 12px 30px;
             border-radius: 25px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
-            backdrop-filter: blur(10px);
         }
 
         .tab-button:hover {
-            background: rgba(255,255,255,0.3);
+            border-color: var(--accent-yellow);
             transform: translateY(-2px);
         }
 
         .tab-button.active {
-            background: white;
-            color: #667eea;
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
         }
 
         .tab-content {
@@ -126,25 +128,26 @@ export function galleryTemplate(data: GalleryTemplateData): string {
 
         /* Stats Bar */
         .stats-bar {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
+            background: white;
             border-radius: 15px;
             padding: 20px;
             display: flex;
             justify-content: space-around;
             margin-bottom: 30px;
+            box-shadow: var(--card-shadow);
             animation: fadeIn 0.8s ease 0.2s both;
         }
 
         .stat {
             text-align: center;
-            color: white;
+            color: var(--text-dark);
         }
 
         .stat strong {
             display: block;
             font-size: 2em;
             margin-bottom: 5px;
+            color: var(--primary-green);
         }
 
         /* Video Grid */
@@ -167,11 +170,12 @@ export function galleryTemplate(data: GalleryTemplateData): string {
         .video-card:hover {
             transform: translateY(-8px) scale(1.02);
             box-shadow: var(--card-hover-shadow);
+            border-color: var(--accent-yellow);
         }
 
         .video-container {
             position: relative;
-            background: #000;
+            background: var(--footer-dark);
             aspect-ratio: 16/9;
         }
 
@@ -201,7 +205,7 @@ export function galleryTemplate(data: GalleryTemplateData): string {
 
         .video-prompt {
             font-size: 0.95em;
-            color: #333;
+            color: var(--text-dark);
             margin-bottom: 15px;
             line-height: 1.5;
         }
@@ -212,12 +216,12 @@ export function galleryTemplate(data: GalleryTemplateData): string {
             align-items: center;
             margin-bottom: 15px;
             padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--bg-cream);
         }
 
         .cuteness-badge {
-            background: var(--cuteness-gradient);
-            color: white;
+            background: var(--accent-yellow);
+            color: var(--text-dark);
             padding: 6px 15px;
             border-radius: 20px;
             font-weight: bold;
@@ -250,23 +254,23 @@ export function galleryTemplate(data: GalleryTemplateData): string {
         }
 
         .download-btn {
-            background: var(--download-gradient);
+            background: var(--primary-green);
             color: white;
         }
 
         .download-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+            background: var(--accent-hover);
         }
 
         .share-btn {
-            background: linear-gradient(45deg, #56ab2f 0%, #a8e063 100%);
-            color: white;
+            background: var(--accent-yellow);
+            color: var(--text-dark);
         }
 
         .share-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(86, 171, 47, 0.4);
+            background: var(--accent-hover);
         }
 
         /* Prompts Section */
@@ -276,7 +280,7 @@ export function galleryTemplate(data: GalleryTemplateData): string {
         }
 
         .generate-btn {
-            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            background: var(--primary-green);
             color: white;
             border: none;
             padding: 15px 40px;
@@ -285,12 +289,13 @@ export function galleryTemplate(data: GalleryTemplateData): string {
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 5px 15px rgba(240, 147, 251, 0.3);
+            box-shadow: var(--card-shadow);
         }
 
         .generate-btn:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(240, 147, 251, 0.5);
+            background: var(--accent-hover);
+            box-shadow: var(--card-hover-shadow);
         }
 
         .generate-btn:disabled {
@@ -321,7 +326,7 @@ export function galleryTemplate(data: GalleryTemplateData): string {
 
         .prompt-text {
             font-size: 15px;
-            color: #2c3e50;
+            color: var(--text-dark);
             margin-bottom: 15px;
             line-height: 1.5;
         }
@@ -337,12 +342,12 @@ export function galleryTemplate(data: GalleryTemplateData): string {
             display: flex;
             justify-content: space-between;
             font-size: 13px;
-            color: #666;
+            color: var(--text-light);
         }
 
         .score-value {
             font-weight: bold;
-            color: #667eea;
+            color: var(--primary-green);
         }
 
         .prompt-meta {
@@ -351,7 +356,7 @@ export function galleryTemplate(data: GalleryTemplateData): string {
             align-items: center;
             margin-top: 15px;
             padding-top: 15px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--bg-cream);
         }
 
         .prompt-tags {
@@ -361,16 +366,16 @@ export function galleryTemplate(data: GalleryTemplateData): string {
         }
 
         .tag {
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
+            background: rgba(1, 125, 29, 0.1);
+            color: var(--primary-green);
             padding: 4px 10px;
             border-radius: 12px;
             font-size: 12px;
         }
 
         .generate-video-btn {
-            background: var(--download-gradient);
-            color: white;
+            background: var(--accent-yellow);
+            color: var(--text-dark);
             border: none;
             padding: 8px 20px;
             border-radius: 20px;
@@ -382,7 +387,7 @@ export function galleryTemplate(data: GalleryTemplateData): string {
 
         .generate-video-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+            background: var(--accent-hover);
         }
 
         .generate-video-btn:disabled {
@@ -391,13 +396,14 @@ export function galleryTemplate(data: GalleryTemplateData): string {
         }
 
         .generate-video-btn.video-created {
-            background: linear-gradient(45deg, #56ab2f 0%, #a8e063 100%);
+            background: var(--primary-green);
+            color: white;
         }
 
         .no-videos {
             text-align: center;
             padding: 60px 20px;
-            color: white;
+            color: var(--text-dark);
             font-size: 1.2em;
             grid-column: 1 / -1;
         }
@@ -819,6 +825,32 @@ export function galleryTemplate(data: GalleryTemplateData): string {
                 showToast('❌ Error finding video');
             }
         }
+
+        // Auto-poll pending videos every 15 seconds for local development
+        setInterval(async () => {
+            try {
+                // Check if there are any pending videos
+                const videosResponse = await fetch('/videos');
+                const videosData = await videosResponse.json();
+                const hasPending = videosData.videos?.some(v => v.status === 'pending');
+
+                if (hasPending) {
+                    console.log('Polling pending videos...');
+                    const pollResponse = await fetch('/poll-videos');
+                    const pollData = await pollResponse.json();
+                    if (pollData.success) {
+                        console.log(pollData.message);
+                        // Reload page if videos were processed
+                        if (pollData.message && pollData.message.includes('Processed') && !pollData.message.includes('0')) {
+                            console.log('Videos completed, reloading page...');
+                            location.reload();
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Auto-poll error:', error);
+            }
+        }, 15000);
     </script>
 </body>
 </html>`;
