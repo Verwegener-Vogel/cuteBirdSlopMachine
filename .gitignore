@@ -14,3 +14,6 @@ wrangler.toml
 *.jpeg
 *.gif
 *.svg
+
+# Bruno environment files (contain secrets)
+bruno-collection/environments/
