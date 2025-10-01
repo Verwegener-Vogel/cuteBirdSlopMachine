@@ -1,20 +1,9 @@
 import { VideoPollerService } from './services/videoPoller';
 import { ServiceFactory } from './services/ServiceFactory';
-import { handleHealth } from './handlers/health';
-import { handleGeneratePrompts, handleGetPrompts } from './handlers/prompts';
-import { handleGallery, handleTestPlayer } from './handlers/ui';
-import {
-  handleGenerateVideo,
-  handleStreamVideo,
-  handleDownloadVideo,
-  handleGetVideo,
-  handleListVideos,
-  handleVideoStatus,
-  handlePollVideos,
-} from './handlers/videos';
 import { requireAuth } from './middleware/auth';
 import { handleCors } from './middleware/cors';
 import { handleError } from './middleware/errorHandler';
+import { route } from './router';
 
 export interface Env {
   GOOGLE_AI_API_KEY: string;
@@ -28,8 +17,6 @@ export interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-
     // Initialize DI container for this request
     ServiceFactory.initialize(env);
 
@@ -46,56 +33,8 @@ export default {
         return authResponse;
       }
 
-      switch (url.pathname) {
-        case '/generate-prompts':
-          return handleGeneratePrompts(request, env);
-
-        case '/generate-video':
-          return handleGenerateVideo(request, env);
-
-        case '/prompts':
-          return handleGetPrompts(request, env);
-
-        case '/health':
-          return handleHealth(request, env);
-
-        case '/poll-videos':
-          return handlePollVideos(request, env);
-
-        case '/video-status':
-          return handleVideoStatus(request, env);
-
-        case '/videos':
-          return handleListVideos(request, env);
-
-        case '/test-video.html':
-          return handleTestPlayer(request, env);
-
-        case '/':
-        case '/videos.html':
-          return handleGallery(request, env);
-
-        default:
-          // Check for video download endpoint
-          if (url.pathname.match(/^\/videos\/[^\/]+\/download$/)) {
-            const videoId = url.pathname.split('/')[2];
-            return handleDownloadVideo(request, env, videoId);
-          }
-
-          // Check for video streaming endpoint
-          if (url.pathname.match(/^\/videos\/[^\/]+\/stream$/)) {
-            const videoId = url.pathname.split('/')[2];
-            return handleStreamVideo(request, env, videoId);
-          }
-
-          // Check for video metadata endpoint
-          if (url.pathname.startsWith('/videos/')) {
-            const videoId = url.pathname.split('/')[2];
-            return handleGetVideo(request, env, videoId);
-          }
-
-          return new Response('Not found', { status: 404 });
-      }
+      // Route the request
+      return await route(request, env);
     } catch (error) {
       return handleError(error);
     }
