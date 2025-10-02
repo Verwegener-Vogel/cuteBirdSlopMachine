@@ -1,5 +1,14 @@
 # Cute Bird Slop Machine - AI Assistant Guidelines
 
+## 🔐 CRITICAL SECURITY RULE
+
+**NEVER, UNDER ANY CIRCUMSTANCES, COMMIT API KEYS OR SECRETS TO GIT OR DOCUMENTATION FILES.**
+
+- API keys belong ONLY in `.env` files (gitignored) or GitHub Secrets
+- When documenting setup, provide instructions to CREATE/GENERATE keys, not example values
+- If you accidentally expose a secret, IMMEDIATELY stop and alert the user
+- All sensitive values must use placeholders like `YOUR_API_KEY_HERE` or reference environment variables
+
 ## Project Mission
 
 Create an automated system that generates the maximum volume of adorable bird AI video content, specifically featuring Northern German Baltic coastal bird species, using Google's Gemini AI capabilities.

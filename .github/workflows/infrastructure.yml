@@ -7,7 +7,7 @@ on:
       - 'infrastructure/**'
       - '.github/workflows/infrastructure.yml'
     branches:
-      - master
+      - main
 
 env:
   NODE_VERSION: '20'
