@@ -1,159 +1,277 @@
 #!/bin/bash
 
 # Cloudflare API Token Creation Script
-# This script provides instructions for creating the required Cloudflare API token
-# IMPORTANT: This script does NOT expose any secrets - it only provides guidance
+# This script uses the Cloudflare API to programmatically create a token
+# with the exact permissions needed for Cute Bird Slop Machine.
 
 set -e
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "🔐 Cloudflare API Token Creation Guide"
+echo "🔐 Cloudflare API Token Creation Script"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "This script will guide you through creating a Cloudflare API token"
-echo "with the exact permissions needed for Cute Bird Slop Machine."
+echo "This script creates a Cloudflare API token programmatically using"
+echo "the Cloudflare API with the exact permissions needed."
 echo ""
-echo "⚠️  SECURITY NOTE: This script does NOT create the token automatically."
-echo "    You must create it manually in the Cloudflare dashboard to maintain"
-echo "    security best practices."
+echo "⚠️  BOOTSTRAP REQUIREMENT:"
+echo "    You need an existing API token or Global API Key to create new tokens."
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Step 1: Open browser
-echo "📋 STEP 1: Open Cloudflare API Tokens Page"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "Opening: https://dash.cloudflare.com/profile/api-tokens"
-echo ""
-
-if command -v open &> /dev/null; then
-    open "https://dash.cloudflare.com/profile/api-tokens"
-elif command -v xdg-open &> /dev/null; then
-    xdg-open "https://dash.cloudflare.com/profile/api-tokens"
-else
-    echo "Please manually open: https://dash.cloudflare.com/profile/api-tokens"
+# Check for required tools
+if ! command -v curl &> /dev/null; then
+    echo "❌ Error: curl is required but not installed."
+    exit 1
 fi
 
-echo "Press Enter when the page has loaded..."
-read
+if ! command -v jq &> /dev/null; then
+    echo "❌ Error: jq is required but not installed."
+    echo "   Install with: brew install jq (macOS) or apt-get install jq (Linux)"
+    exit 1
+fi
 
-# Step 2: Create token
-echo ""
-echo "📋 STEP 2: Create New Token"
+# Get bootstrap credentials
+echo "📋 STEP 1: Provide Bootstrap Credentials"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "1. Click the 'Create Token' button"
-echo "2. Click 'Use template' on 'Edit Cloudflare Workers'"
+echo "Choose authentication method:"
+echo "  1) API Token (recommended - more secure)"
+echo "  2) Global API Key + Email (legacy)"
 echo ""
-echo "Press Enter when you've started creating the token..."
-read
+read -p "Enter choice (1 or 2): " auth_choice
 
-# Step 3: Configure permissions
-echo ""
-echo "📋 STEP 3: Configure Token Permissions"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "Set these ACCOUNT permissions:"
-echo ""
-echo "  ✓ Workers Scripts         : Edit"
-echo "  ✓ D1                      : Edit"
-echo "  ✓ Workers KV Storage      : Edit"
-echo "  ✓ Cloudflare Queues       : Edit"
-echo "  ✓ Account Settings        : Read"
-echo ""
-echo "Set these ZONE permissions:"
-echo ""
-echo "  ✓ Workers Routes          : Edit"
-echo ""
-echo "Press Enter when permissions are configured..."
-read
-
-# Step 4: Set account resources
-echo ""
-echo "📋 STEP 4: Set Account Resources"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "Under 'Account Resources':"
-echo "  • Select: Include"
-echo "  • Choose: Your specific account"
-echo ""
-echo "Press Enter when account is selected..."
-read
-
-# Step 5: Create and copy
-echo ""
-echo "📋 STEP 5: Create Token and Copy"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "1. Click 'Continue to summary'"
-echo "2. Review the permissions"
-echo "3. Click 'Create Token'"
-echo "4. COPY THE TOKEN IMMEDIATELY (you won't see it again!)"
-echo ""
-echo "Press Enter after copying the token..."
-read
-
-# Step 6: Save to GitHub Secrets
-echo ""
-echo "📋 STEP 6: Add to GitHub Secrets"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "Go to your repository settings:"
-echo "  https://github.com/YOUR_USERNAME/YOUR_REPO/settings/secrets/actions"
-echo ""
-echo "Add a new secret:"
-echo "  Name:  CLOUDFLARE_API_TOKEN"
-echo "  Value: (paste the token you just copied)"
-echo ""
-echo "⚠️  CRITICAL SECURITY REMINDER:"
-echo "    • NEVER commit this token to git"
-echo "    • NEVER share it in chat/email"
-echo "    • NEVER paste it in code comments"
-echo "    • Store ONLY in GitHub Secrets"
-echo ""
-
-# Optional: Open GitHub secrets page
-echo "Would you like to open the GitHub Secrets page? (y/n)"
-read -r response
-
-if [[ "$response" =~ ^[Yy]$ ]]; then
+if [ "$auth_choice" = "1" ]; then
     echo ""
-    echo "Please enter your GitHub repository URL:"
-    echo "(e.g., https://github.com/username/repo)"
-    read -r repo_url
+    read -sp "Enter your existing Cloudflare API Token: " BOOTSTRAP_TOKEN
+    echo ""
+    AUTH_HEADER="Authorization: Bearer $BOOTSTRAP_TOKEN"
+elif [ "$auth_choice" = "2" ]; then
+    echo ""
+    read -p "Enter your Cloudflare account email: " CF_EMAIL
+    read -sp "Enter your Global API Key: " CF_GLOBAL_KEY
+    echo ""
+    AUTH_HEADER="X-Auth-Email: $CF_EMAIL"
+    AUTH_KEY_HEADER="X-Auth-Key: $CF_GLOBAL_KEY"
+else
+    echo "❌ Invalid choice"
+    exit 1
+fi
 
-    # Extract owner and repo from URL
-    if [[ "$repo_url" =~ github\.com[/:]([^/]+)/([^/\.]+) ]]; then
-        owner="${BASH_REMATCH[1]}"
-        repo="${BASH_REMATCH[2]}"
-        secrets_url="https://github.com/${owner}/${repo}/settings/secrets/actions"
+# Get account ID
+echo ""
+echo "📋 STEP 2: Get Account Information"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
 
-        echo "Opening: $secrets_url"
+if [ "$auth_choice" = "1" ]; then
+    ACCOUNTS_RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/v4/accounts" \
+        -H "$AUTH_HEADER" \
+        -H "Content-Type: application/json")
+else
+    ACCOUNTS_RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/v4/accounts" \
+        -H "$AUTH_HEADER" \
+        -H "$AUTH_KEY_HEADER" \
+        -H "Content-Type: application/json")
+fi
 
-        if command -v open &> /dev/null; then
-            open "$secrets_url"
-        elif command -v xdg-open &> /dev/null; then
-            xdg-open "$secrets_url"
+# Check if request was successful
+if ! echo "$ACCOUNTS_RESPONSE" | jq -e '.success' > /dev/null 2>&1; then
+    echo "❌ Error: Failed to authenticate with Cloudflare API"
+    echo ""
+    echo "Response:"
+    echo "$ACCOUNTS_RESPONSE" | jq '.'
+    exit 1
+fi
+
+# Parse accounts
+ACCOUNT_COUNT=$(echo "$ACCOUNTS_RESPONSE" | jq '.result | length')
+
+if [ "$ACCOUNT_COUNT" -eq 0 ]; then
+    echo "❌ Error: No accounts found"
+    exit 1
+elif [ "$ACCOUNT_COUNT" -eq 1 ]; then
+    ACCOUNT_ID=$(echo "$ACCOUNTS_RESPONSE" | jq -r '.result[0].id')
+    ACCOUNT_NAME=$(echo "$ACCOUNTS_RESPONSE" | jq -r '.result[0].name')
+    echo "✓ Using account: $ACCOUNT_NAME ($ACCOUNT_ID)"
+else
+    echo "Multiple accounts found:"
+    echo "$ACCOUNTS_RESPONSE" | jq -r '.result[] | "\(.id) - \(.name)"'
+    echo ""
+    read -p "Enter Account ID to use: " ACCOUNT_ID
+fi
+
+# Create token payload
+echo ""
+echo "📋 STEP 3: Create API Token"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+TOKEN_NAME="cute-bird-slop-machine-$(date +%Y%m%d-%H%M%S)"
+
+# Build the token creation payload
+TOKEN_PAYLOAD=$(cat <<EOF
+{
+  "name": "$TOKEN_NAME",
+  "policies": [
+    {
+      "effect": "allow",
+      "resources": {
+        "com.cloudflare.api.account.$ACCOUNT_ID": "*"
+      },
+      "permission_groups": [
+        {
+          "id": "c8fed203ed3043cba015a93ad1616f1f",
+          "name": "Workers Scripts Write"
+        },
+        {
+          "id": "b955d8c7b8c245fc964fa5d0e3e8e3f5",
+          "name": "D1 Write"
+        },
+        {
+          "id": "e086da7e2179491d91ee5f35b3ca210a",
+          "name": "Workers KV Storage Write"
+        },
+        {
+          "id": "ed07f6c337da4195b4e72a1fb2c6bcae",
+          "name": "Workers Queues Write"
+        },
+        {
+          "id": "e6d2666161e84845a636613608cee8d5",
+          "name": "Account Settings Read"
+        }
+      ]
+    },
+    {
+      "effect": "allow",
+      "resources": {
+        "com.cloudflare.api.account.zone.*": "*"
+      },
+      "permission_groups": [
+        {
+          "id": "c8fed203ed3043cba015a93ad1616f1f",
+          "name": "Workers Routes Write"
+        }
+      ]
+    }
+  ]
+}
+EOF
+)
+
+echo "Creating token: $TOKEN_NAME"
+echo ""
+
+# Create the token
+if [ "$auth_choice" = "1" ]; then
+    CREATE_RESPONSE=$(curl -s -X POST "https://api.cloudflare.com/v4/user/tokens" \
+        -H "$AUTH_HEADER" \
+        -H "Content-Type: application/json" \
+        -d "$TOKEN_PAYLOAD")
+else
+    CREATE_RESPONSE=$(curl -s -X POST "https://api.cloudflare.com/v4/user/tokens" \
+        -H "$AUTH_HEADER" \
+        -H "$AUTH_KEY_HEADER" \
+        -H "Content-Type: application/json" \
+        -d "$TOKEN_PAYLOAD")
+fi
+
+# Check if token creation was successful
+if ! echo "$CREATE_RESPONSE" | jq -e '.success' > /dev/null 2>&1; then
+    echo "❌ Error: Failed to create token"
+    echo ""
+    echo "Response:"
+    echo "$CREATE_RESPONSE" | jq '.'
+    exit 1
+fi
+
+# Extract the token value
+NEW_TOKEN=$(echo "$CREATE_RESPONSE" | jq -r '.result.value')
+TOKEN_ID=$(echo "$CREATE_RESPONSE" | jq -r '.result.id')
+
+echo "✅ Token created successfully!"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🔑 YOUR NEW API TOKEN"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "Token ID:   $TOKEN_ID"
+echo "Token Name: $TOKEN_NAME"
+echo ""
+echo "⚠️  COPY THIS TOKEN NOW - IT WILL NOT BE SHOWN AGAIN:"
+echo ""
+echo "$NEW_TOKEN"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Optionally save to file
+read -p "Would you like to save this token to .env file? (y/n): " save_choice
+
+if [[ "$save_choice" =~ ^[Yy]$ ]]; then
+    if [ -f ".env" ]; then
+        # Update existing .env
+        if grep -q "^CLOUDFLARE_API_TOKEN=" .env; then
+            # Token exists, update it
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                sed -i '' "s|^CLOUDFLARE_API_TOKEN=.*|CLOUDFLARE_API_TOKEN=$NEW_TOKEN|" .env
+            else
+                sed -i "s|^CLOUDFLARE_API_TOKEN=.*|CLOUDFLARE_API_TOKEN=$NEW_TOKEN|" .env
+            fi
+            echo "✓ Updated CLOUDFLARE_API_TOKEN in .env"
         else
-            echo "Please manually open: $secrets_url"
+            # Token doesn't exist, append it
+            echo "CLOUDFLARE_API_TOKEN=$NEW_TOKEN" >> .env
+            echo "✓ Added CLOUDFLARE_API_TOKEN to .env"
+        fi
+
+        # Update account ID if not present
+        if ! grep -q "^CLOUDFLARE_ACCOUNT_ID=" .env; then
+            echo "CLOUDFLARE_ACCOUNT_ID=$ACCOUNT_ID" >> .env
+            echo "✓ Added CLOUDFLARE_ACCOUNT_ID to .env"
         fi
     else
-        echo "Invalid GitHub URL format. Please manually navigate to:"
-        echo "  Settings → Secrets and variables → Actions → New repository secret"
+        # Create new .env from example
+        if [ -f ".env.example" ]; then
+            cp .env.example .env
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                sed -i '' "s|your_cloudflare_api_token|$NEW_TOKEN|" .env
+                sed -i '' "s|your_cloudflare_account_id|$ACCOUNT_ID|" .env
+            else
+                sed -i "s|your_cloudflare_api_token|$NEW_TOKEN|" .env
+                sed -i "s|your_cloudflare_account_id|$ACCOUNT_ID|" .env
+            fi
+            echo "✓ Created .env file with token"
+        else
+            echo "CLOUDFLARE_API_TOKEN=$NEW_TOKEN" > .env
+            echo "CLOUDFLARE_ACCOUNT_ID=$ACCOUNT_ID" >> .env
+            echo "✓ Created new .env file"
+        fi
     fi
+    echo ""
+    echo "⚠️  Remember: .env is gitignored - it will NOT be committed to git"
 fi
 
 echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "✅ Token Creation Complete!"
+echo "📋 Next Steps"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "Next steps:"
-echo "  1. Verify CLOUDFLARE_API_TOKEN is added to GitHub Secrets"
-echo "  2. Also add CLOUDFLARE_ACCOUNT_ID (from Cloudflare dashboard)"
-echo "  3. Add CLOUDFLARE_ZONE (your domain name)"
-echo "  4. Continue with infrastructure setup"
+echo "1. Add to GitHub Secrets:"
+echo "   Go to: https://github.com/YOUR_USERNAME/YOUR_REPO/settings/secrets/actions"
+echo "   Name:  CLOUDFLARE_API_TOKEN"
+echo "   Value: (paste the token above)"
 echo ""
-echo "See SETUP.md for complete deployment instructions."
+echo "2. Also add these GitHub Secrets:"
+echo "   CLOUDFLARE_ACCOUNT_ID: $ACCOUNT_ID"
+echo "   CLOUDFLARE_ZONE: (your domain, e.g., vogel.yoga)"
+echo "   GOOGLE_AI_API_KEY: (from Google AI Studio)"
+echo "   WORKER_API_KEY: (run: npm run generate-api-key)"
+echo ""
+echo "3. Continue with infrastructure setup (see SETUP.md)"
+echo ""
+echo "⚠️  SECURITY REMINDERS:"
+echo "   • NEVER commit this token to git"
+echo "   • NEVER share it in chat/email/screenshots"
+echo "   • Store ONLY in GitHub Secrets and local .env"
+echo "   • Rotate if ever exposed"
 echo ""
