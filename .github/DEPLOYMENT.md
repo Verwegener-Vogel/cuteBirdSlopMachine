@@ -65,9 +65,9 @@ This creates:
 **Important:** After running, update `wrangler.toml` with the resource IDs shown in the workflow output.
 
 #### 2. Deploy Application
-Push to `main` branch to trigger automatic deployment:
+Push to `master` branch to trigger automatic deployment:
 ```bash
-git push origin main
+git push origin master
 ```
 
 Or manually trigger:
