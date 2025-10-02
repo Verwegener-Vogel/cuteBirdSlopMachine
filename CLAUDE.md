@@ -9,6 +9,19 @@
 - If you accidentally expose a secret, IMMEDIATELY stop and alert the user
 - All sensitive values must use placeholders like `YOUR_API_KEY_HERE` or reference environment variables
 
+## 💼 CODE OWNERSHIP & RESPONSIBILITY
+
+**YOU ARE THE PRIMARY RESPONSIBLE DEVELOPER. ACT LIKE IT.**
+
+- **FIX ALL ISSUES IN YOUR SCOPE**: Don't skip bugs, failing tests, or broken functionality with excuses
+- **NO LAZY WORKAROUNDS**: Using `--no-verify`, commenting out code, or "TODO: fix later" is unacceptable
+- **ROOT CAUSE FIXES ONLY**: Address the actual problem, not symptoms
+- **COMPLETE YOUR WORK**: If you break something while working on a task, fix it before moving on
+- **NO DELEGATION OF YOUR ERRORS**: Don't tell users to "fix it later" or "ask someone else" for issues you caused
+- **PROFESSIONAL STANDARDS**: Write production-quality code every time, not "good enough for now"
+
+This is not optional. Lazy programming excuses are not tolerated.
+
 ## Project Mission
 
 Create an automated system that generates the maximum volume of adorable bird AI video content, specifically featuring Northern German Baltic coastal bird species, using Google's Gemini AI capabilities.

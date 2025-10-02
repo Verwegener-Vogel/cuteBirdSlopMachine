@@ -3,6 +3,11 @@ import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
 export default defineWorkersConfig({
   test: {
     globals: true,
+    exclude: [
+      '**/node_modules/**',
+      '**/examples/**', // Exclude Playwright tests
+      '**/*.spec.ts',   // Exclude Playwright spec files
+    ],
     poolOptions: {
       workers: {
         wrangler: { configPath: "./wrangler.toml" },
@@ -21,6 +26,7 @@ export default defineWorkersConfig({
       exclude: [
         'node_modules/',
         'test/',
+        'examples/',
         '*.config.ts',
         'scripts/',
       ],
