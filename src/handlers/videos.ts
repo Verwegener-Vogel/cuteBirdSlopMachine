@@ -74,7 +74,7 @@ export async function handleStreamVideo(request: Request, env: Env, videoId: str
 
   // Get video from database
   const video = await env.DB
-    .prepare('SELECT r2_key, status FROM videos WHERE id = ?')
+    .prepare('SELECT r2_key, status, google_url FROM videos WHERE id = ?')
     .bind(videoId)
     .first();
 
@@ -83,64 +83,107 @@ export async function handleStreamVideo(request: Request, env: Env, videoId: str
   }
 
   if (!video.r2_key) {
+    // Fallback to Google URL if available
+    if (video.google_url) {
+      console.log('[Stream] No R2 key, redirecting to Google URL');
+      return Response.redirect(video.google_url as string, 302);
+    }
     return new Response('Video not available for streaming', { status: 404 });
   }
 
-  // Support range requests for video streaming
-  const range = request.headers.get('Range');
-  let object;
+  // Get the R2 object first
+  console.log('[Stream] Looking for R2 key:', video.r2_key);
+  const object = await env.VIDEO_STORAGE.get(video.r2_key as string);
 
-  if (range) {
-    const parts = range.replace(/bytes=/, '').split('-');
-    const start = parseInt(parts[0], 10);
-    const end = parts[1] ? parseInt(parts[1], 10) : undefined;
+  if (!object) {
+    // Fallback to Google URL if R2 fails
+    if (video.google_url) {
+      console.log('[Stream] R2 not found, redirecting to Google URL');
+      return Response.redirect(video.google_url as string, 302);
+    }
+    return new Response('Video file not found', { status: 404 });
+  }
 
-    console.log('[Stream] Range request:', start, '-', end || 'end');
+  console.log('[Stream] Found R2 object, size:', object.size);
 
-    // Use R2's range option to fetch only the requested bytes
-    object = await env.VIDEO_STORAGE.get(video.r2_key as string, {
-      range: { offset: start, length: end ? end - start + 1 : undefined }
-    });
+  // Check if browser requested a range
+  const rangeHeader = request.headers.get('Range');
+  const isDevelopment = env.ENVIRONMENT !== 'production';
 
-    if (!object) {
-      console.error('[Stream] R2 object not found for key:', video.r2_key);
-      return new Response('Video file not found', { status: 404 });
+  try {
+    // In development mode, ignore range requests and always serve full file
+    // This works around R2 local storage range request issues
+    if (isDevelopment) {
+      if (rangeHeader) {
+        console.log('[Stream] Dev mode: Ignoring range header, serving full file');
+      }
+
+      const headers = new Headers();
+      headers.set('Content-Type', 'video/mp4');
+      headers.set('Content-Length', object.size.toString());
+      headers.set('Cache-Control', 'private, max-age=3600');
+      headers.set('Accept-Ranges', 'none');  // Tell browser we don't support ranges
+      headers.set('Access-Control-Allow-Origin', '*');
+
+      return new Response(object.body, {
+        status: 200,
+        headers,
+      });
     }
 
-    const totalSize = object.range ? object.range.offset + object.size : object.size;
-    const actualEnd = end || totalSize - 1;
+    // Production: Handle proper range requests
+    if (rangeHeader && !isDevelopment) {
+      const parts = rangeHeader.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : undefined;
 
-    const headers = new Headers();
-    headers.set('Content-Type', 'video/mp4');
-    headers.set('Content-Range', `bytes ${start}-${actualEnd}/${totalSize}`);
-    headers.set('Accept-Ranges', 'bytes');
-    headers.set('Content-Length', String(actualEnd - start + 1));
-    headers.set('Cache-Control', 'private, max-age=3600');
+      console.log('[Stream] Range request:', start, '-', end || 'end');
 
-    return new Response(object.body, {
-      status: 206,
-      headers,
-    });
-  } else {
-    // Full file request
-    console.log('[Stream] Looking for R2 key:', video.r2_key);
-    object = await env.VIDEO_STORAGE.get(video.r2_key as string);
+      // Get only the requested range from R2
+      const rangedObject = await env.VIDEO_STORAGE.get(video.r2_key as string, {
+        range: { offset: start, length: end ? end - start + 1 : undefined }
+      });
 
-    if (!object) {
-      console.error('[Stream] R2 object not found for key:', video.r2_key);
-      return new Response('Video file not found', { status: 404 });
+      if (!rangedObject) {
+        throw new Error('R2 range request failed');
+      }
+
+      const totalSize = rangedObject.range ? rangedObject.range.offset + rangedObject.size : rangedObject.size;
+      const actualEnd = end || totalSize - 1;
+
+      const headers = new Headers();
+      headers.set('Content-Type', 'video/mp4');
+      headers.set('Content-Range', `bytes ${start}-${actualEnd}/${totalSize}`);
+      headers.set('Accept-Ranges', 'bytes');
+      headers.set('Content-Length', String(actualEnd - start + 1));
+      headers.set('Cache-Control', 'private, max-age=3600');
+      headers.set('Access-Control-Allow-Origin', '*');
+
+      return new Response(rangedObject.body, {
+        status: 206,
+        headers,
+      });
     }
-    console.log('[Stream] Found R2 object, size:', object.size);
 
+    // No range request: serve full file
     const headers = new Headers();
     headers.set('Content-Type', 'video/mp4');
     headers.set('Content-Length', object.size.toString());
     headers.set('Cache-Control', 'private, max-age=3600');
     headers.set('Accept-Ranges', 'bytes');
+    headers.set('Access-Control-Allow-Origin', '*');
 
     return new Response(object.body, {
       headers,
     });
+  } catch (error) {
+    console.error('[Stream] R2 error:', error);
+    // Fallback to Google URL if R2 fails
+    if (video.google_url) {
+      console.log('[Stream] R2 failed, redirecting to Google URL');
+      return Response.redirect(video.google_url as string, 302);
+    }
+    return new Response('Video file not found', { status: 404 });
   }
 }
 
