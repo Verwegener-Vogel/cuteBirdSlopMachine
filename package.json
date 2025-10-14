@@ -18,6 +18,13 @@
     "test:ui": "vitest --ui",
     "test:bruno": "node test/bruno-generator.test.js",
     "test:videos": "vitest run test/videos-endpoint.test.js",
+    "test:smoke": "node scripts/smoke-tests.js",
+    "version:major": "node scripts/version-bump.js major",
+    "version:minor": "node scripts/version-bump.js minor",
+    "version:patch": "node scripts/version-bump.js patch",
+    "metrics:dashboard": "node scripts/metrics-dashboard.js",
+    "metrics:json": "node scripts/metrics-dashboard.js --format=json",
+    "metrics:week": "node scripts/metrics-dashboard.js --days=7",
     "prepare": "husky"
   },
   "keywords": [],

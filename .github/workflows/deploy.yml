@@ -73,10 +73,14 @@ jobs:
             --var WORKER_API_KEY:${{ secrets.WORKER_API_KEY }} \
             --var ENVIRONMENT:production
 
-      - name: Health check
-        run: |
-          sleep 5
-          curl -f https://cute-bird-slop-machine.${{ secrets.CLOUDFLARE_ZONE }}/health || exit 1
+      - name: Wait for deployment propagation
+        run: sleep 10
+
+      - name: Run smoke tests
+        env:
+          PRODUCTION_URL: https://cute-bird-slop-machine.${{ secrets.CLOUDFLARE_ZONE }}
+          WORKER_API_KEY: ${{ secrets.WORKER_API_KEY }}
+        run: npm run test:smoke -- --env=production
 
       - name: Deployment summary
         run: |
